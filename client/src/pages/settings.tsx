@@ -4,11 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Key, Brain, Database } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import Sidebar from "@/components/layout/sidebar";
 
 interface SettingsProps {
   workspaceId: string;
@@ -20,8 +21,15 @@ export default function SettingsPage({ workspaceId }: SettingsProps) {
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["/api/user/settings"],
-    enabled: !!workspaceId,
+    enabled: true,
   });
+
+  // Load existing OpenAI key from settings
+  useEffect(() => {
+    if (settings?.openaiApiKey) {
+      setOpenaiKey(settings.openaiApiKey);
+    }
+  }, [settings]);
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: { openaiApiKey?: string }) => {
@@ -69,22 +77,40 @@ export default function SettingsPage({ workspaceId }: SettingsProps) {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center space-x-2 mb-6">
-          <Settings className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold text-white">Settings</h1>
+      <div className="min-h-screen bg-background flex">
+        <Sidebar 
+          workspaces={[{ id: workspaceId || "", name: "My Marketing Campaigns" }]}
+          connections={[]}
+          selectedWorkspace={workspaceId || ""}
+          onWorkspaceChange={() => {}}
+        />
+        <div className="flex-1 lg:ml-64">
+          <div className="container mx-auto p-6">
+            <div className="flex items-center space-x-2 mb-6">
+              <Settings className="h-6 w-6 text-primary" />
+              <h1 className="text-2xl font-bold text-white">Settings</h1>
+            </div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          </div>
         </div>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center space-x-2 mb-6">
-        <Settings className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-      </div>
+    <div className="min-h-screen bg-background flex">
+      <Sidebar 
+        workspaces={[{ id: workspaceId || "", name: "My Marketing Campaigns" }]}
+        connections={[]}
+        selectedWorkspace={workspaceId || ""}
+        onWorkspaceChange={() => {}}
+      />
+      <div className="flex-1 lg:ml-64">
+        <div className="container mx-auto p-6">
+          <div className="flex items-center space-x-2 mb-6">
+            <Settings className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold text-white">Settings</h1>
+          </div>
 
       <Tabs defaultValue="api-keys" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
@@ -197,6 +223,8 @@ export default function SettingsPage({ workspaceId }: SettingsProps) {
           </Card>
         </TabsContent>
       </Tabs>
+        </div>
+      </div>
     </div>
   );
 }

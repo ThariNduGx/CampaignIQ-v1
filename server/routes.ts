@@ -445,13 +445,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/user/settings', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const validatedData = insertUserSettingsSchema.parse({ ...req.body, userId });
-      const settings = await storage.upsertUserSettings(validatedData);
+      const { openaiApiKey } = req.body;
+      
+      const settings = await storage.upsertUserSettings({
+        userId,
+        openaiApiKey,
+      });
+      
       res.json(settings);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: fromZodError(error).toString() });
-      }
       console.error("Error updating user settings:", error);
       res.status(500).json({ message: "Failed to update user settings" });
     }
