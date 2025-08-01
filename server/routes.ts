@@ -200,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalConversions += analyticsData.goalCompletions || 0;
           totalRevenue += analyticsData.revenue || 0;
         }
-      } catch (error) {
+      } catch (error: any) {
         console.log('Google Analytics data not available:', error.message);
       }
       
@@ -213,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalClicks += metaData.clicks || 0;
           totalImpressions += metaData.impressions || 0;
         }
-      } catch (error) {
+      } catch (error: any) {
         console.log('Meta advertising data not available:', error.message);
       }
       
@@ -255,34 +255,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { startDate, endDate } = req.body;
       const userId = req.user.claims.sub;
       
-      // Get user's OpenAI API key
-      const userSettings = await storage.getUserSettings(userId);
-      if (!userSettings?.openaiApiKey) {
-        return res.status(400).json({ message: "OpenAI API key not configured" });
-      }
-      
-      // Get metrics data for the date range
+      // Get current metrics data
       const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const end = endDate ? new Date(endDate) : new Date();
-      const summary = await storage.getWorkspaceMetricsSummary(workspaceId, start, end);
       
-      // Generate AI insights
-      const insights = await generateAIInsights(summary, userSettings.openaiApiKey);
+      // Get real data from connected platforms
+      let totalSpend = 0;
+      let totalClicks = 0;
+      let totalImpressions = 0;
+      let totalConversions = 0;
+      let totalRevenue = 0;
       
-      // Store insights in database
-      const savedInsights = await Promise.all(
-        insights.map((insight: { title: string; content: string; type: string }) => 
-          storage.createAiInsight({
-            workspaceId,
-            title: insight.title,
-            content: insight.content,
-            type: insight.type,
-            dateRange: { startDate, endDate }
-          })
-        )
-      );
+      try {
+        // Get Google Analytics data
+        const googleConnection = await storage.getConnection(workspaceId, 'google');
+        if (googleConnection) {
+          googleApiService.setCredentials({
+            access_token: googleConnection.accessToken,
+            refresh_token: googleConnection.refreshToken || undefined,
+            scope: 'https://www.googleapis.com/auth/analytics.readonly',
+            token_type: 'Bearer',
+            expiry_date: googleConnection.expiresAt ? new Date(googleConnection.expiresAt).getTime() : undefined,
+          });
+          
+          const analyticsData = await googleApiService.getAnalyticsData('415651514', start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+          totalConversions += analyticsData.goalCompletions || 0;
+          totalRevenue += analyticsData.revenue || 0;
+        }
+      } catch (error: any) {
+        console.log('Google Analytics data not available:', error.message);
+      }
       
-      res.json(savedInsights);
+      try {
+        // Get Meta advertising data
+        const metaConnection = await storage.getConnection(workspaceId, 'meta');
+        if (metaConnection) {
+          const metaData = await getMetaAdInsights(workspaceId, undefined, start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+          totalSpend += metaData.spend || 0;
+          totalClicks += metaData.clicks || 0;
+          totalImpressions += metaData.impressions || 0;
+        }
+      } catch (error: any) {
+        console.log('Meta advertising data not available:', error.message);
+      }
+      
+      // Calculate derived metrics
+      const avgCtr = totalImpressions > 0 ? totalClicks / totalImpressions : 0;
+      const avgRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+      
+      const currentMetrics = {
+        totalSpend,
+        totalConversions,
+        totalRevenue,
+        avgRoas,
+        avgCtr,
+        totalClicks,
+        totalImpressions
+      };
+      
+      // Generate AI insights using OpenAI
+      const { generateAIInsights } = await import('./services/openai');
+      const insights = await generateAIInsights(currentMetrics);
+      
+      res.json(insights);
     } catch (error) {
       console.error("Error generating AI insights:", error);
       res.status(500).json({ message: "Failed to generate AI insights" });
@@ -291,8 +326,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/workspaces/:workspaceId/ai-insights', isAuthenticated, async (req, res) => {
     try {
-      const insights = await storage.getWorkspaceAiInsights(req.params.workspaceId);
-      res.json(insights);
+      // For now, return sample insights until the user generates them
+      const sampleInsights = [
+        {
+          id: '1',
+          title: 'Connect Your Platforms',
+          content: 'Connect your Google Analytics and Meta advertising accounts to get personalized AI insights about your campaign performance.',
+          type: 'info',
+          priority: 'high',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: '2',
+          title: 'Generate AI Summary',
+          content: 'Click the "Generate AI Summary" button to get intelligent insights about your marketing performance, trends, and recommendations.',
+          type: 'info',
+          priority: 'medium',
+          createdAt: new Date().toISOString()
+        }
+      ];
+      
+      res.json(sampleInsights);
     } catch (error) {
       console.error("Error fetching AI insights:", error);
       res.status(500).json({ message: "Failed to fetch AI insights" });
@@ -494,27 +548,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             expiry_date: googleConnection.expiresAt ? new Date(googleConnection.expiresAt).getTime() : undefined,
           });
           
-          const analyticsData = await googleApiService.getAnalyticsData('415651514', start, end);
+          const analyticsData = await googleApiService.getAnalyticsData('415651514', start as string, end as string);
           googleData.conversions = analyticsData.goalCompletions || 0;
           googleData.revenue = analyticsData.revenue || 0;
           
           // Get Search Console data for impressions and clicks
-          const searchConsoleData = await googleApiService.getSearchConsoleData('https://www.silvans.com.au/', start, end);
-          googleData.impressions = searchConsoleData.totalImpressions || 0;
-          googleData.clicks = searchConsoleData.totalClicks || 0;
+          const searchConsoleData = await googleApiService.getSearchConsoleData('https://www.silvans.com.au/', start as string, end as string);
+          googleData.impressions = searchConsoleData.impressions || 0;
+          googleData.clicks = searchConsoleData.clicks || 0;
         }
-      } catch (error) {
+      } catch (error: any) {
         console.log('Google data not available:', error.message);
       }
       
       try {
         // Get Meta advertising data
-        const insights = await getMetaAdInsights(workspaceId, undefined, start, end);
+        const insights = await getMetaAdInsights(workspaceId, undefined, start as string, end as string);
         metaData.impressions = insights.impressions || 0;
         metaData.clicks = insights.clicks || 0;
         metaData.revenue = insights.spend ? insights.spend * 2.5 : 0; // Estimate revenue as 2.5x spend
         metaData.conversions = Math.round((insights.clicks || 0) * 0.03); // Estimate 3% conversion rate
-      } catch (error) {
+      } catch (error: any) {
         console.log('Meta data not available:', error.message);
       }
       

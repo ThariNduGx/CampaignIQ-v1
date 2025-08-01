@@ -84,12 +84,12 @@ export class GoogleApiService {
     }
   }
 
-  async getAnalyticsData(startDate: string, endDate: string, propertyId?: string): Promise<GoogleAnalyticsData> {
+  async getAnalyticsData(propertyId: string, startDate: string, endDate: string): Promise<GoogleAnalyticsData> {
     try {
       let targetPropertyId = propertyId;
       
       // If no specific property provided, get the first available one
-      if (!targetPropertyId) {
+      if (!targetPropertyId || targetPropertyId.includes('-')) {
         const properties = await this.getUserProperties();
         if (properties.length === 0) {
           console.log('No Analytics properties found for user');
@@ -163,12 +163,12 @@ export class GoogleApiService {
     }
   }
 
-  async getSearchConsoleData(startDate: string, endDate: string, siteUrl?: string): Promise<GoogleSearchConsoleData> {
+  async getSearchConsoleData(siteUrl: string, startDate: string, endDate: string): Promise<GoogleSearchConsoleData> {
     try {
       let targetSiteUrl = siteUrl;
       
       // If no specific site provided, get the first available one
-      if (!targetSiteUrl) {
+      if (!targetSiteUrl || targetSiteUrl.includes('-')) {
         const sites = await this.getUserSites();
         if (sites.length === 0) {
           return {

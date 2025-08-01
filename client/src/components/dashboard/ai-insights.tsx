@@ -26,13 +26,15 @@ export default function AiInsights({ workspaceId, dateRange }: AiInsightsProps) 
 
   const generateInsightsMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", `/api/workspaces/${workspaceId}/ai-insights`, {
+      const response = await apiRequest("POST", `/api/workspaces/${workspaceId}/ai-insights`, {
         startDate: dateRange.startDate,
         endDate: dateRange.endDate
       });
+      return response;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/workspaces", workspaceId, "ai-insights"] });
+    onSuccess: (newInsights) => {
+      // Update the query cache with the new insights
+      queryClient.setQueryData(["/api/workspaces", workspaceId, "ai-insights"], newInsights);
       toast({
         title: "Success",
         description: "AI insights generated successfully",
