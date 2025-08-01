@@ -177,35 +177,48 @@ export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate, o
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {summaryCards.map((card, index) => (
-            <div key={index} className="bg-slate-800/50 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-slate-400">{card.title}</p>
-                  <p className="text-lg font-semibold text-white">{card.value}</p>
+        {/* Show message if no data available */}
+        {(!analyticsData || (analyticsData.sessions === 0 && analyticsData.pageviews === 0)) ? (
+          <div className="text-center py-8">
+            <TrendingUp className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-white mb-2">No Analytics Data</h3>
+            <p className="text-slate-400 mb-4">No data available for the selected property and date range.</p>
+            <p className="text-xs text-slate-500">Property: {selectedProperty || 'None selected'}</p>
+            <p className="text-xs text-slate-500">Date range: {startDate} to {endDate}</p>
+          </div>
+        ) : (
+          <>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {summaryCards.map((card, index) => (
+                <div key={index} className="bg-slate-800/50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-400">{card.title}</p>
+                      <p className="text-lg font-semibold text-white">{card.value}</p>
+                    </div>
+                    <card.icon className={`h-5 w-5 ${card.color}`} />
+                  </div>
                 </div>
-                <card.icon className={`h-5 w-5 ${card.color}`} />
+              ))}
+            </div>
+
+            {/* Performance Metrics */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-white">Performance Metrics</h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-400">Bounce Rate</span>
+                  <span className="text-sm text-white">{(analyticsData?.bounceRate || 0).toFixed(1)}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-400">Goal Completions</span>
+                  <span className="text-sm text-white">{analyticsData?.goalCompletions?.toLocaleString() || "0"}</span>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Performance Metrics */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-white">Performance Metrics</h4>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-400">Bounce Rate</span>
-              <span className="text-sm text-white">{(analyticsData?.bounceRate || 0).toFixed(1)}%</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-400">Goal Completions</span>
-              <span className="text-sm text-white">{analyticsData?.goalCompletions?.toLocaleString() || "0"}</span>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

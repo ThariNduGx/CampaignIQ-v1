@@ -77,14 +77,13 @@ export async function generateReportData(
       // Use first available property and site
       if (properties.length > 0) {
         analyticsData = await googleApiService.getAnalyticsData(properties[0], startDate, endDate);
+        platforms.google.analytics = analyticsData;
       }
       
       if (sites.length > 0) {
         searchConsoleData = await googleApiService.getSearchConsoleData(sites[0], startDate, endDate);
+        platforms.google.searchConsole = searchConsoleData;
       }
-      
-      platforms.google.analytics = analyticsData;
-      platforms.google.searchConsole = searchConsoleData;
       
       totalConversions += analyticsData.goalCompletions || 0;
       totalRevenue += analyticsData.revenue || 0;

@@ -747,28 +747,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
       });
       
-      // Get user's properties and sites first
-      const [properties, sites] = await Promise.all([
-        googleApiService.getUserProperties(),
-        googleApiService.getUserSites()
-      ]);
-      
-      let analyticsData = null;
-      let searchConsoleData = null;
-      
-      // Use first available property and site
-      if (properties.length > 0) {
-        analyticsData = await googleApiService.getAnalyticsData(properties[0], start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+      try {
+        // Get user's properties and sites first
+        const [properties, sites] = await Promise.all([
+          googleApiService.getUserProperties(),
+          googleApiService.getUserSites()
+        ]);
+        
+        console.log('Available Google Analytics properties:', properties);
+        console.log('Available Google Search Console sites:', sites);
+        
+        let analyticsData = null;
+        let searchConsoleData = null;
+        
+        // Use first available property and site
+        if (properties.length > 0) {
+          console.log('Using Analytics property:', properties[0]);
+          analyticsData = await googleApiService.getAnalyticsData(properties[0], start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+        } else {
+          console.log('No Analytics properties available');
+        }
+        
+        if (sites.length > 0) {
+          console.log('Using Search Console site:', sites[0]);
+          searchConsoleData = await googleApiService.getSearchConsoleData(sites[0], start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+        } else {
+          console.log('No Search Console sites available');
+        }
+        
+        res.json({
+          analytics: analyticsData,
+          searchConsole: searchConsoleData
+        });
+      } catch (error) {
+        console.error('Error in combined Google endpoint:', error);
+        res.json({
+          analytics: null,
+          searchConsole: null,
+          error: 'Failed to fetch Google data'
+        });
       }
-      
-      if (sites.length > 0) {
-        searchConsoleData = await googleApiService.getSearchConsoleData(sites[0], start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
-      }
-      
-      res.json({
-        analytics: analyticsData,
-        searchConsole: searchConsoleData
-      });
     } catch (error) {
       console.error('Error fetching Google data:', error);
       res.status(500).json({ message: 'Failed to fetch Google data' });

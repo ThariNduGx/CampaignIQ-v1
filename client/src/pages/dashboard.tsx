@@ -22,8 +22,8 @@ export default function Dashboard() {
   const [selectedAnalyticsProperty, setSelectedAnalyticsProperty] = useState<string>("");
   const [selectedSearchConsoleDomain, setSelectedSearchConsoleDomain] = useState<string>("");
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
+    startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 90 days ago
+    endDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 2 days ago (allow for data processing)
   });
 
   // Redirect to home if not authenticated
