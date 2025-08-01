@@ -23,16 +23,23 @@ export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate, 
   const { toast } = useToast();
 
   // Auto-select first site if none selected
-  const { data: sites } = useQuery({
+  const { data: sites, isLoading: sitesLoading, error: sitesError } = useQuery({
     queryKey: ['/api/google/search-console/sites', workspaceId],
     queryFn: async () => {
       const response = await fetch(`/api/google/search-console/${workspaceId}/sites`, {
         credentials: 'include'
       });
-      if (!response.ok) throw new Error('Failed to fetch sites');
-      return response.json();
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Sites fetch error:', errorData);
+        throw new Error('Failed to fetch sites');
+      }
+      const data = await response.json();
+      console.log('Available sites:', data);
+      return data;
     },
     enabled: !!workspaceId,
+    retry: 2,
   });
 
   // Auto-select first site when sites are loaded and none is selected
@@ -77,6 +84,8 @@ export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate, 
         credentials: 'include'
       });
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Search Console data fetch error:', errorData);
         throw new Error('Failed to fetch Search Console data');
       }
       const data = await response.json();
@@ -84,9 +93,10 @@ export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate, 
       return data;
     },
     enabled: !!workspaceId && !!selectedSite,
+    retry: 2,
   });
 
-  if (isLoading) {
+  if (isLoading || sitesLoading) {
     return (
       <Card className="glass-card border-primary/20">
         <CardHeader>
@@ -105,19 +115,39 @@ export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate, 
     );
   }
 
-  if (error) {
+  if (error || sitesError) {
     return (
       <Card className="glass-card border-primary/20">
         <CardHeader>
-          <CardTitle className="text-white flex items-center space-x-2">
-            <Search className="h-5 w-5 text-green-400" />
-            <span>Google Search Console</span>
+          <CardTitle className="text-white flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Search className="h-5 w-5 text-green-400" />
+              <span>Google Search Console</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => disconnectMutation.mutate()}
+                disabled={disconnectMutation.isPending}
+                className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                title="Disconnect Google Search Console"
+              >
+                <Unplug className="h-4 w-4" />
+              </Button>
+              <Settings className="h-4 w-4 text-slate-400" />
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <p className="text-slate-400">Failed to load Search Console data</p>
-            <p className="text-sm text-slate-500 mt-1">Please check your connection settings</p>
+            <p className="text-sm text-slate-500 mt-1">
+              {sitesError ? 'Cannot access Search Console sites' : 'Please check your connection settings'}
+            </p>
+            {sitesError && (
+              <p className="text-xs text-slate-500 mt-2">Try reconnecting your Google account</p>
+            )}
           </div>
         </CardContent>
       </Card>

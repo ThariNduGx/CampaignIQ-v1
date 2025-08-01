@@ -1,3 +1,4 @@
+import React from 'react';
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,15 +46,34 @@ export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate, o
   });
 
   // Fetch available properties
-  const { data: properties } = useQuery({
+  const { data: properties, isLoading: propertiesLoading, error: propertiesError } = useQuery({
     queryKey: ['/api/google/analytics/properties', workspaceId],
     queryFn: async () => {
-      const response = await fetch(`/api/google/analytics/${workspaceId}/properties`);
-      if (!response.ok) throw new Error('Failed to fetch properties');
-      return response.json();
+      const response = await fetch(`/api/google/analytics/${workspaceId}/properties`, {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Properties fetch error:', errorData);
+        throw new Error('Failed to fetch properties');
+      }
+      const data = await response.json();
+      console.log('Available properties:', data);
+      return data;
     },
     enabled: !!workspaceId,
+    retry: 2,
   });
+
+  // Auto-select first property when available
+  React.useEffect(() => {
+    if (!selectedProperty && properties && properties.length > 0) {
+      const firstProperty = properties[0];
+      setSelectedProperty(firstProperty);
+      onPropertySelect?.(firstProperty);
+      console.log('Auto-selected first property:', firstProperty);
+    }
+  }, [properties, selectedProperty, onPropertySelect]);
   const { data: analyticsData, isLoading, error } = useQuery({
     queryKey: ['/api/google/analytics', workspaceId, selectedProperty, startDate, endDate],
     queryFn: async () => {
@@ -62,16 +82,23 @@ export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate, o
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
       
-      const response = await fetch(`/api/google/analytics/${workspaceId}?${params}`);
+      const response = await fetch(`/api/google/analytics/${workspaceId}?${params}`, {
+        credentials: 'include'
+      });
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Analytics data fetch error:', errorData);
         throw new Error('Failed to fetch Google Analytics data');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('Analytics data received:', data);
+      return data;
     },
-    enabled: !!workspaceId,
+    enabled: !!workspaceId && !!selectedProperty,
+    retry: 2,
   });
 
-  if (isLoading) {
+  if (isLoading || propertiesLoading) {
     return (
       <Card className="glass-card border-primary/20">
         <CardHeader>
@@ -90,19 +117,39 @@ export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate, o
     );
   }
 
-  if (error) {
+  if (error || propertiesError) {
     return (
       <Card className="glass-card border-primary/20">
         <CardHeader>
-          <CardTitle className="text-white flex items-center space-x-2">
-            <TrendingUp className="h-5 w-5 text-blue-400" />
-            <span>Google Analytics</span>
+          <CardTitle className="text-white flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-5 w-5 text-blue-400" />
+              <span>Google Analytics</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => disconnectMutation.mutate()}
+                disabled={disconnectMutation.isPending}
+                className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                title="Disconnect Google Analytics"
+              >
+                <Unplug className="h-4 w-4" />
+              </Button>
+              <Settings className="h-4 w-4 text-slate-400" />
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <p className="text-slate-400">Failed to load Analytics data</p>
-            <p className="text-sm text-slate-500 mt-1">Please check your connection settings</p>
+            <p className="text-sm text-slate-500 mt-1">
+              {propertiesError ? 'Cannot access Analytics properties' : 'Please check your connection settings'}
+            </p>
+            {propertiesError && (
+              <p className="text-xs text-slate-500 mt-2">Try reconnecting your Google account</p>
+            )}
           </div>
         </CardContent>
       </Card>
