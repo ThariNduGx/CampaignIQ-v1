@@ -35,7 +35,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (workspaces.length === 0) {
         const defaultWorkspace = await storage.createWorkspace({
           name: "My Marketing Campaigns",
-          description: "Default workspace for marketing analytics",
           userId: userId
         });
         workspaces = [defaultWorkspace];
@@ -269,9 +268,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const analyticsData = await googleApiService.getAnalyticsData(
-        propertyId as string || '12345',
-        startDate as string || '30daysAgo',
-        endDate as string || 'today'
+        startDate as string || '2025-07-02',
+        endDate as string || '2025-08-01'
       );
 
       res.json(analyticsData);
@@ -308,7 +306,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const searchConsoleData = await googleApiService.getSearchConsoleData(
-        siteUrl as string || 'https://example.com',
         startDate as string || '2024-01-01',
         endDate as string || '2024-01-31'
       );

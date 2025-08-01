@@ -61,8 +61,34 @@ export class GoogleApiService {
     });
   }
 
-  async getAnalyticsData(propertyId: string, startDate: string, endDate: string): Promise<GoogleAnalyticsData> {
+  async getUserProperties(): Promise<string[]> {
     try {
+      const analytics = google.analyticsadmin({ version: 'v1beta', auth: this.oauth2Client });
+      const response = await analytics.properties.list();
+      return response.data.properties?.map(prop => prop.name?.split('/')[1] || '').filter(Boolean) || [];
+    } catch (error) {
+      console.error('Error fetching user properties:', error);
+      return [];
+    }
+  }
+
+  async getAnalyticsData(startDate: string, endDate: string): Promise<GoogleAnalyticsData> {
+    try {
+      const properties = await this.getUserProperties();
+      
+      if (properties.length === 0) {
+        return {
+          sessions: 0,
+          pageviews: 0,
+          bounceRate: 0,
+          avgSessionDuration: 0,
+          goalCompletions: 0,
+          revenue: 0,
+        };
+      }
+
+      // Use the first available property
+      const propertyId = properties[0];
       const analytics = google.analyticsdata({ version: 'v1beta', auth: this.oauth2Client });
       
       const response = await analytics.properties.runReport({
@@ -93,12 +119,45 @@ export class GoogleApiService {
       };
     } catch (error) {
       console.error('Error fetching Google Analytics data:', error);
-      throw new Error('Failed to fetch Google Analytics data');
+      // Return empty data instead of throwing
+      return {
+        sessions: 0,
+        pageviews: 0,
+        bounceRate: 0,
+        avgSessionDuration: 0,
+        goalCompletions: 0,
+        revenue: 0,
+      };
     }
   }
 
-  async getSearchConsoleData(siteUrl: string, startDate: string, endDate: string): Promise<GoogleSearchConsoleData> {
+  async getUserSites(): Promise<string[]> {
     try {
+      const searchconsole = google.searchconsole({ version: 'v1', auth: this.oauth2Client });
+      const response = await searchconsole.sites.list();
+      return response.data.siteEntry?.map(site => site.siteUrl || '').filter(Boolean) || [];
+    } catch (error) {
+      console.error('Error fetching user sites:', error);
+      return [];
+    }
+  }
+
+  async getSearchConsoleData(startDate: string, endDate: string): Promise<GoogleSearchConsoleData> {
+    try {
+      const sites = await this.getUserSites();
+      
+      if (sites.length === 0) {
+        return {
+          clicks: 0,
+          impressions: 0,
+          ctr: 0,
+          position: 0,
+          queries: [],
+        };
+      }
+
+      // Use the first available site
+      const siteUrl = sites[0];
       const searchconsole = google.searchconsole({ version: 'v1', auth: this.oauth2Client });
       
       const response = await searchconsole.searchanalytics.query({
@@ -134,7 +193,14 @@ export class GoogleApiService {
       };
     } catch (error) {
       console.error('Error fetching Google Search Console data:', error);
-      throw new Error('Failed to fetch Google Search Console data');
+      // Return empty data instead of throwing
+      return {
+        clicks: 0,
+        impressions: 0,
+        ctr: 0,
+        position: 0,
+        queries: [],
+      };
     }
   }
 
