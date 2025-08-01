@@ -10,6 +10,7 @@ import PerformanceChart from "@/components/dashboard/performance-chart";
 import PlatformChart from "@/components/dashboard/platform-chart";
 import AiInsights from "@/components/dashboard/ai-insights";
 import CampaignTable from "@/components/dashboard/campaign-table";
+import ExportReports from "@/components/dashboard/export-reports";
 import { AnalyticsWidget } from "@/components/google/analytics-widget";
 import { SearchConsoleWidget } from "@/components/google/search-console-widget";
 import MetaAdsWidget from "@/components/meta/meta-ads-widget";
@@ -125,16 +126,21 @@ export default function Dashboard() {
               />
               <MetaAdsWidget 
                 workspaceId={selectedWorkspace}
-                startDate={dateRange.startDate}
-                endDate={dateRange.endDate}
               />
             </div>
           </div>
           
-          <AiInsights 
-            workspaceId={selectedWorkspace}
-            dateRange={dateRange}
-          />
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="xl:col-span-2">
+              <AiInsights 
+                workspaceId={selectedWorkspace}
+                dateRange={dateRange}
+              />
+            </div>
+            <div className="xl:col-span-1">
+              <ExportReports workspaceId={selectedWorkspace} />
+            </div>
+          </div>
           
           <CampaignTable workspaceId={selectedWorkspace} />
         </main>

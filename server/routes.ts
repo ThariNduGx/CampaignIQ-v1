@@ -353,6 +353,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export reports route
+  app.post('/api/workspaces/:workspaceId/export', isAuthenticated, async (req: any, res) => {
+    try {
+      const { workspaceId } = req.params;
+      const { reportType, format, startDate, endDate } = req.body;
+      
+      // Generate report data
+      const { generateReportData, generateCSVReport, generateHTMLReport } = await import('./services/reports');
+      const reportData = await generateReportData(workspaceId, startDate, endDate);
+      
+      let content: string;
+      let mimeType: string;
+      let fileExtension: string;
+      
+      if (format === 'csv') {
+        content = generateCSVReport(reportData);
+        mimeType = 'text/csv';
+        fileExtension = 'csv';
+      } else {
+        // Generate HTML for PDF or direct HTML download
+        content = generateHTMLReport(reportData, reportType);
+        mimeType = 'text/html';
+        fileExtension = 'html';
+      }
+      
+      // For now, return the content directly
+      // In a production environment, you would save to a file service and return a download URL
+      const filename = `campaigniq-${reportType}-${startDate}-to-${endDate}.${fileExtension}`;
+      
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(content);
+      
+    } catch (error) {
+      console.error("Error generating report:", error);
+      res.status(500).json({ message: "Failed to generate report" });
+    }
+  });
+
   // User settings routes
   app.get('/api/user/settings', isAuthenticated, async (req: any, res) => {
     try {
