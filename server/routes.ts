@@ -275,9 +275,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             expiry_date: googleConnection.expiresAt ? new Date(googleConnection.expiresAt).getTime() : undefined,
           });
           
-          const analyticsData = await googleApiService.getAnalyticsData('415651514', start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
-          totalConversions += analyticsData.goalCompletions || 0;
-          totalRevenue += analyticsData.revenue || 0;
+          // Get user's properties and use the first available one
+          const properties = await googleApiService.getUserProperties();
+          if (properties.length > 0) {
+            const analyticsData = await googleApiService.getAnalyticsData(properties[0], start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+            totalConversions += analyticsData.goalCompletions || 0;
+            totalRevenue += analyticsData.revenue || 0;
+          }
         }
       } catch (error: any) {
         console.log('Google Analytics data not available:', error.message);
@@ -743,10 +747,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
       });
       
-      const [analyticsData, searchConsoleData] = await Promise.all([
-        googleApiService.getAnalyticsData('415651514', start.toISOString().split('T')[0], end.toISOString().split('T')[0]),
-        googleApiService.getSearchConsoleData('https://www.silvans.com.au/', start.toISOString().split('T')[0], end.toISOString().split('T')[0])
+      // Get user's properties and sites first
+      const [properties, sites] = await Promise.all([
+        googleApiService.getUserProperties(),
+        googleApiService.getUserSites()
       ]);
+      
+      let analyticsData = null;
+      let searchConsoleData = null;
+      
+      // Use first available property and site
+      if (properties.length > 0) {
+        analyticsData = await googleApiService.getAnalyticsData(properties[0], start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+      }
+      
+      if (sites.length > 0) {
+        searchConsoleData = await googleApiService.getSearchConsoleData(sites[0], start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+      }
       
       res.json({
         analytics: analyticsData,

@@ -65,8 +65,23 @@ export async function generateReportData(
         expiry_date: googleConnection.expiresAt ? new Date(googleConnection.expiresAt).getTime() : undefined,
       });
 
-      const analyticsData = await googleApiService.getAnalyticsData('415651514', startDate, endDate);
-      const searchConsoleData = await googleApiService.getSearchConsoleData('https://www.silvans.com.au/', startDate, endDate);
+      // Get user's properties and sites first
+      const [properties, sites] = await Promise.all([
+        googleApiService.getUserProperties(),
+        googleApiService.getUserSites()
+      ]);
+      
+      let analyticsData = null;
+      let searchConsoleData = null;
+      
+      // Use first available property and site
+      if (properties.length > 0) {
+        analyticsData = await googleApiService.getAnalyticsData(properties[0], startDate, endDate);
+      }
+      
+      if (sites.length > 0) {
+        searchConsoleData = await googleApiService.getSearchConsoleData(sites[0], startDate, endDate);
+      }
       
       platforms.google.analytics = analyticsData;
       platforms.google.searchConsole = searchConsoleData;
