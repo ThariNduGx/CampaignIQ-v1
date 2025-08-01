@@ -606,7 +606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/google/analytics/:workspaceId/properties', requireAuth, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = (req.user as any)?.id; // Use custom auth user ID
       
       if (!userId) {
         return res.status(401).json({ message: 'Unauthorized' });
@@ -660,7 +660,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/google/search-console/:workspaceId/sites', requireAuth, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = (req.user as any)?.id; // Use custom auth user ID
       
       if (!userId) {
         return res.status(401).json({ message: 'Unauthorized' });
