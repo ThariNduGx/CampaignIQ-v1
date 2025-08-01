@@ -19,6 +19,8 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
+  const [selectedAnalyticsProperty, setSelectedAnalyticsProperty] = useState<string>("");
+  const [selectedSearchConsoleDomain, setSelectedSearchConsoleDomain] = useState<string>("");
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
@@ -118,11 +120,15 @@ export default function Dashboard() {
                 workspaceId={selectedWorkspace}
                 startDate={dateRange.startDate}
                 endDate={dateRange.endDate}
+                onPropertySelect={setSelectedAnalyticsProperty}
+                selectedProperty={selectedAnalyticsProperty}
               />
               <SearchConsoleWidget 
                 workspaceId={selectedWorkspace}
                 startDate={dateRange.startDate}
                 endDate={dateRange.endDate}
+                onDomainSelect={setSelectedSearchConsoleDomain}
+                selectedDomain={selectedSearchConsoleDomain}
               />
               <MetaAdsWidget 
                 workspaceId={selectedWorkspace}
@@ -135,6 +141,8 @@ export default function Dashboard() {
               <AiInsights 
                 workspaceId={selectedWorkspace}
                 dateRange={dateRange}
+                selectedAnalyticsProperty={selectedAnalyticsProperty}
+                selectedSearchConsoleDomain={selectedSearchConsoleDomain}
               />
             </div>
             <div className="xl:col-span-1">

@@ -14,10 +14,12 @@ interface SearchConsoleWidgetProps {
   siteUrl?: string;
   startDate?: string;
   endDate?: string;
+  onDomainSelect?: (domain: string) => void;
+  selectedDomain?: string;
 }
 
-export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate }: SearchConsoleWidgetProps) {
-  const [selectedSite, setSelectedSite] = useState<string>(siteUrl || "");
+export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate, onDomainSelect, selectedDomain: externalSelectedDomain }: SearchConsoleWidgetProps) {
+  const [selectedSite, setSelectedSite] = useState<string>(externalSelectedDomain || siteUrl || "");
   const { toast } = useToast();
 
   // Auto-select first site if none selected
@@ -159,7 +161,10 @@ export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate }
           </div>
           <div className="flex items-center space-x-2">
             {sites && sites.length > 0 && (
-              <Select value={selectedSite} onValueChange={setSelectedSite}>
+              <Select value={selectedSite} onValueChange={(value) => {
+                setSelectedSite(value);
+                onDomainSelect?.(value);
+              }}>
                 <SelectTrigger className="w-48 h-8 text-xs">
                   <SelectValue placeholder="Select Site" />
                 </SelectTrigger>

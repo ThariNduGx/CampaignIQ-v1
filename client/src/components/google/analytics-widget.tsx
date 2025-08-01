@@ -13,10 +13,12 @@ interface AnalyticsWidgetProps {
   propertyId?: string;
   startDate?: string;
   endDate?: string;
+  onPropertySelect?: (propertyId: string) => void;
+  selectedProperty?: string;
 }
 
-export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate }: AnalyticsWidgetProps) {
-  const [selectedProperty, setSelectedProperty] = useState<string>(propertyId || "");
+export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate, onPropertySelect, selectedProperty: externalSelectedProperty }: AnalyticsWidgetProps) {
+  const [selectedProperty, setSelectedProperty] = useState<string>(externalSelectedProperty || propertyId || "");
   const { toast } = useToast();
 
   // Disconnect mutation
@@ -144,7 +146,10 @@ export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate }:
           </div>
           <div className="flex items-center space-x-2">
             {properties && properties.length > 0 && (
-              <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+              <Select value={selectedProperty} onValueChange={(value) => {
+                setSelectedProperty(value);
+                onPropertySelect?.(value);
+              }}>
                 <SelectTrigger className="w-32 h-8 text-xs">
                   <SelectValue placeholder="Property" />
                 </SelectTrigger>

@@ -13,9 +13,11 @@ interface AiInsightsProps {
     startDate: string;
     endDate: string;
   };
+  selectedAnalyticsProperty?: string;
+  selectedSearchConsoleDomain?: string;
 }
 
-export default function AiInsights({ workspaceId, dateRange }: AiInsightsProps) {
+export default function AiInsights({ workspaceId, dateRange, selectedAnalyticsProperty, selectedSearchConsoleDomain }: AiInsightsProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -28,7 +30,9 @@ export default function AiInsights({ workspaceId, dateRange }: AiInsightsProps) 
     mutationFn: async () => {
       const response = await apiRequest("POST", `/api/workspaces/${workspaceId}/ai-insights`, {
         startDate: dateRange.startDate,
-        endDate: dateRange.endDate
+        endDate: dateRange.endDate,
+        analyticsProperty: selectedAnalyticsProperty,
+        searchConsoleDomain: selectedSearchConsoleDomain
       });
       return response;
     },

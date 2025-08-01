@@ -252,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/workspaces/:workspaceId/ai-insights', isAuthenticated, async (req: any, res) => {
     try {
       const { workspaceId } = req.params;
-      const { startDate, endDate } = req.body;
+      const { startDate, endDate, analyticsProperty, searchConsoleDomain } = req.body;
       const userId = req.user.claims.sub;
       
       // Get current metrics data
@@ -277,26 +277,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             expiry_date: googleConnection.expiresAt ? new Date(googleConnection.expiresAt).getTime() : undefined,
           });
 
-          // Get Analytics data
-          try {
-            googleAnalyticsData = await googleApiService.getAnalyticsData(
-              '415651514', // Property ID
-              start.toISOString().split('T')[0],
-              end.toISOString().split('T')[0]
-            );
-          } catch (error: any) {
-            console.log("Google Analytics data unavailable:", error.message);
+          // Get Analytics data for selected property
+          if (analyticsProperty) {
+            try {
+              googleAnalyticsData = await googleApiService.getAnalyticsData(
+                analyticsProperty,
+                start.toISOString().split('T')[0],
+                end.toISOString().split('T')[0]
+              );
+              console.log(`Analytics data fetched for property: ${analyticsProperty}`);
+            } catch (error: any) {
+              console.log(`Google Analytics data unavailable for property ${analyticsProperty}:`, error.message);
+            }
           }
 
-          // Get Search Console data  
-          try {
-            googleSearchConsoleData = await googleApiService.getSearchConsoleData(
-              'https://atechclub.com/',
-              start.toISOString().split('T')[0],
-              end.toISOString().split('T')[0]
-            );
-          } catch (error: any) {
-            console.log("Google Search Console data unavailable:", error.message);
+          // Get Search Console data for selected domain
+          if (searchConsoleDomain) {
+            try {
+              googleSearchConsoleData = await googleApiService.getSearchConsoleData(
+                searchConsoleDomain,
+                start.toISOString().split('T')[0],
+                end.toISOString().split('T')[0]
+              );
+              console.log(`Search Console data fetched for domain: ${searchConsoleDomain}`);
+            } catch (error: any) {
+              console.log(`Google Search Console data unavailable for domain ${searchConsoleDomain}:`, error.message);
+            }
           }
         } catch (error) {
           console.error("Error with Google services:", error);
