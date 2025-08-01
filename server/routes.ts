@@ -190,6 +190,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Additional callback route for Google OAuth configured redirect URI
+  app.get('/auth/google/callback', async (req, res) => {
+    try {
+      const { code, state, error, error_description } = req.query;
+      
+      // Handle OAuth errors
+      if (error) {
+        console.error(`Google OAuth callback error: ${error} - ${error_description}`);
+        return res.redirect(`/?connection=error&error=${encodeURIComponent(error)}`);
+      }
+      
+      if (!code || !state) {
+        console.error("Missing code or state in Google OAuth callback");
+        return res.status(400).json({ message: "Missing required parameters" });
+      }
+
+      console.log(`Google OAuth callback received for workspace: ${state}`);
+      
+      const tokens = await exchangeCodeForTokens('google', code as string);
+      
+      // Store the connection in database
+      const connection = await storage.createPlatformConnection({
+        workspaceId: state as string,
+        platform: 'google',
+        accountId: tokens.accountId,
+        accountName: tokens.accountName,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt: new Date(Date.now() + tokens.expiresIn * 1000)
+      });
+
+      console.log(`Google connection created successfully for account: ${tokens.accountName}`);
+      res.redirect(`/?connection=success&platform=google`);
+    } catch (error) {
+      console.error("Error handling Google OAuth callback:", error);
+      res.redirect(`/?connection=error&message=${encodeURIComponent(error.message || 'OAuth callback failed')}`);
+    }
+  });
+
   // Disconnect platform connection
   app.delete('/api/workspaces/:workspaceId/connections/:platform', requireAuth, async (req, res) => {
     try {
