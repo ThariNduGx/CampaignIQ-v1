@@ -33,6 +33,7 @@ function Router() {
           <Route path="/auth" component={Auth} />
           <Route path="/login" component={Auth} />
           <Route path="/register" component={Auth} />
+          <Route component={Landing} />
         </>
       ) : (
         <>
@@ -48,6 +49,7 @@ function Router() {
           <Route path="/settings">
             {(params) => <Settings workspaceId="a3705cc8-cbfd-4758-8402-4d6b8657860e" />}
           </Route>
+          <Route component={Home} />
         </>
       )}
       <Route component={NotFound} />

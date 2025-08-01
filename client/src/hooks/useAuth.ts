@@ -54,6 +54,10 @@ export function useAuth() {
       queryClient.setQueryData(["/api/auth/user"], null);
       queryClient.clear();
       toast({ title: "Signed out" });
+      // Force navigation to landing page after logout
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 100);
     },
     onError: (error: Error) => {
       toast({ title: "Logout failed", description: error.message, variant: "destructive" });
