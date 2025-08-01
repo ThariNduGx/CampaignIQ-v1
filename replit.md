@@ -39,10 +39,12 @@ Preferred communication style: Simple, everyday language.
 - Workspace-based access control ensuring users only access their own data
 
 **External API Integration**
-- Google APIs: Google Ads API and Google Analytics API with proper scope management
-- Meta Business API: Facebook and Instagram Ads API integration
+- Google APIs: Google Analytics Data API, Google Search Console API, and Google My Business API integration
+- Google Ads API integration for campaign performance data (existing framework)
+- Meta Business API: Facebook and Instagram Ads API integration (existing framework)
 - OpenAI API: GPT-4o model for generating marketing insights and anomaly detection
 - Automatic token refresh mechanisms to maintain persistent API connections
+- OAuth 2.0 implementation with comprehensive scope management for Google services
 
 **Data Processing & Analytics**
 - Campaign metrics aggregation across multiple platforms

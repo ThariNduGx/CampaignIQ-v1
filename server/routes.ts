@@ -7,6 +7,7 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { generateOAuthUrl, exchangeCodeForTokens } from "./services/oauth";
 import { generateAIInsights } from "./services/openai.js";
+import { googleApiService } from "./services/google";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -224,6 +225,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Error updating user settings:", error);
       res.status(500).json({ message: "Failed to update user settings" });
+    }
+  });
+
+  // Google Analytics data endpoint
+  app.get('/api/google/analytics/:workspaceId', isAuthenticated, async (req, res) => {
+    try {
+      const workspaceId = req.params.workspaceId;
+      const userId = (req.user as any)?.claims?.sub;
+      const { propertyId, startDate, endDate } = req.query;
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Get Google connection for this workspace
+      const connection = await storage.getConnection(workspaceId, 'google');
+      if (!connection) {
+        return res.status(404).json({ message: 'Google connection not found' });
+      }
+
+      // Set credentials and fetch data
+      googleApiService.setCredentials({
+        access_token: connection.accessToken,
+        refresh_token: connection.refreshToken || undefined,
+        scope: 'https://www.googleapis.com/auth/analytics.readonly',
+        token_type: 'Bearer',
+        expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
+      });
+
+      const analyticsData = await googleApiService.getAnalyticsData(
+        propertyId as string || '12345',
+        startDate as string || '30daysAgo',
+        endDate as string || 'today'
+      );
+
+      res.json(analyticsData);
+    } catch (error) {
+      console.error('Error fetching Google Analytics data:', error);
+      res.status(500).json({ message: 'Failed to fetch Analytics data' });
+    }
+  });
+
+  // Google Search Console data endpoint
+  app.get('/api/google/search-console/:workspaceId', isAuthenticated, async (req, res) => {
+    try {
+      const workspaceId = req.params.workspaceId;
+      const userId = (req.user as any)?.claims?.sub;
+      const { siteUrl, startDate, endDate } = req.query;
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Get Google connection for this workspace
+      const connection = await storage.getConnection(workspaceId, 'google');
+      if (!connection) {
+        return res.status(404).json({ message: 'Google connection not found' });
+      }
+
+      // Set credentials and fetch data
+      googleApiService.setCredentials({
+        access_token: connection.accessToken,
+        refresh_token: connection.refreshToken || undefined,
+        scope: 'https://www.googleapis.com/auth/webmasters.readonly',
+        token_type: 'Bearer',
+        expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
+      });
+
+      const searchConsoleData = await googleApiService.getSearchConsoleData(
+        siteUrl as string || 'https://example.com',
+        startDate as string || '2024-01-01',
+        endDate as string || '2024-01-31'
+      );
+
+      res.json(searchConsoleData);
+    } catch (error) {
+      console.error('Error fetching Google Search Console data:', error);
+      res.status(500).json({ message: 'Failed to fetch Search Console data' });
+    }
+  });
+
+  // Google My Business data endpoint
+  app.get('/api/google/my-business/:workspaceId', isAuthenticated, async (req, res) => {
+    try {
+      const workspaceId = req.params.workspaceId;
+      const userId = (req.user as any)?.claims?.sub;
+      const { accountId, locationId, startDate, endDate } = req.query;
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Get Google connection for this workspace
+      const connection = await storage.getConnection(workspaceId, 'google');
+      if (!connection) {
+        return res.status(404).json({ message: 'Google connection not found' });
+      }
+
+      // Set credentials and fetch data
+      googleApiService.setCredentials({
+        access_token: connection.accessToken,
+        refresh_token: connection.refreshToken || undefined,
+        scope: 'https://www.googleapis.com/auth/business.manage',
+        token_type: 'Bearer',
+        expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
+      });
+
+      const myBusinessData = await googleApiService.getMyBusinessData(
+        accountId as string || '123',
+        locationId as string || '456',
+        startDate as string || '2024-01-01',
+        endDate as string || '2024-01-31'
+      );
+
+      res.json(myBusinessData);
+    } catch (error) {
+      console.error('Error fetching Google My Business data:', error);
+      res.status(500).json({ message: 'Failed to fetch My Business data' });
     }
   });
 

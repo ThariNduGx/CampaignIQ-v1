@@ -5,8 +5,12 @@ export function generateOAuthUrl(platform: string, workspaceId: string): string 
   if (platform === 'google') {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const scopes = [
+      'https://www.googleapis.com/auth/analytics.readonly',
+      'https://www.googleapis.com/auth/webmasters.readonly',
+      'https://www.googleapis.com/auth/business.manage',
       'https://www.googleapis.com/auth/adwords',
-      'https://www.googleapis.com/auth/analytics.readonly'
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile'
     ].join(' ');
     
     const params = new URLSearchParams({

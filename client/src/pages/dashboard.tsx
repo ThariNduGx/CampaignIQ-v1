@@ -10,6 +10,9 @@ import PerformanceChart from "@/components/dashboard/performance-chart";
 import PlatformChart from "@/components/dashboard/platform-chart";
 import AiInsights from "@/components/dashboard/ai-insights";
 import CampaignTable from "@/components/dashboard/campaign-table";
+import { AnalyticsWidget } from "@/components/google/analytics-widget";
+import { SearchConsoleWidget } from "@/components/google/search-console-widget";
+import { MyBusinessWidget } from "@/components/google/my-business-widget";
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -104,6 +107,28 @@ export default function Dashboard() {
               workspaceId={selectedWorkspace}
               dateRange={dateRange}
             />
+          </div>
+          
+          {/* Google Platform Widgets */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-white">Google Platform Insights</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              <AnalyticsWidget 
+                workspaceId={selectedWorkspace}
+                startDate={dateRange.startDate}
+                endDate={dateRange.endDate}
+              />
+              <SearchConsoleWidget 
+                workspaceId={selectedWorkspace}
+                startDate={dateRange.startDate}
+                endDate={dateRange.endDate}
+              />
+              <MyBusinessWidget 
+                workspaceId={selectedWorkspace}
+                startDate={dateRange.startDate}
+                endDate={dateRange.endDate}
+              />
+            </div>
           </div>
           
           <AiInsights 

@@ -39,6 +39,7 @@ export interface IStorage {
   createPlatformConnection(connection: InsertPlatformConnection): Promise<PlatformConnection>;
   updatePlatformConnection(id: string, connection: Partial<InsertPlatformConnection>): Promise<PlatformConnection>;
   getPlatformConnection(id: string): Promise<PlatformConnection | undefined>;
+  getConnection(workspaceId: string, platform: string): Promise<PlatformConnection | undefined>;
   
   // Campaign operations
   getWorkspaceCampaigns(workspaceId: string): Promise<Campaign[]>;
@@ -121,6 +122,18 @@ export class DatabaseStorage implements IStorage {
 
   async getPlatformConnection(id: string): Promise<PlatformConnection | undefined> {
     const [connection] = await db.select().from(platformConnections).where(eq(platformConnections.id, id));
+    return connection;
+  }
+
+  async getConnection(workspaceId: string, platform: string): Promise<PlatformConnection | undefined> {
+    const [connection] = await db
+      .select()
+      .from(platformConnections)
+      .where(and(
+        eq(platformConnections.workspaceId, workspaceId),
+        eq(platformConnections.platform, platform),
+        eq(platformConnections.isActive, true)
+      ));
     return connection;
   }
 
