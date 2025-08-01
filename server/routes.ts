@@ -67,7 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Workspace routes
-  app.get('/api/workspaces', requireAuth, getCurrentUser, async (req: any, res) => {
+  app.get('/api/workspaces', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       let workspaces = await storage.getUserWorkspaces(userId);
@@ -88,7 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/workspaces', requireAuth, getCurrentUser, async (req: any, res) => {
+  app.post('/api/workspaces', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const validatedData = insertWorkspaceSchema.parse({ ...req.body, userId });
@@ -191,10 +191,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Disconnect platform connection
-  app.delete('/api/workspaces/:workspaceId/connections/:platform', requireAuth, getCurrentUser, async (req, res) => {
+  app.delete('/api/workspaces/:workspaceId/connections/:platform', requireAuth, async (req, res) => {
     try {
       const { workspaceId, platform } = req.params;
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = req.user.id;
       
       if (!userId) {
         return res.status(401).json({ message: 'Unauthorized' });

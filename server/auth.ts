@@ -115,11 +115,26 @@ export async function getUserById(id: string): Promise<User | null> {
 }
 
 // Authentication middleware
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.session?.userId) {
     return res.status(401).json({ message: "Unauthorized" });
   }
-  next();
+  
+  try {
+    const user = await getUserById(req.session.userId);
+    if (!user) {
+      req.session.destroy((err) => {
+        if (err) console.error("Session destroy error:", err);
+      });
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    (req as any).user = user;
+    next();
+  } catch (error) {
+    console.error("Auth middleware error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 }
 
 // Get current user middleware
