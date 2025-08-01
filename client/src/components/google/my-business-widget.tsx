@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Store, Eye, Phone, Navigation, Globe, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Store, Eye, Phone, Navigation, Globe, Users, Settings } from "lucide-react";
+import { useState } from "react";
 
 interface MyBusinessWidgetProps {
   workspaceId: string;
@@ -12,12 +14,25 @@ interface MyBusinessWidgetProps {
 }
 
 export function MyBusinessWidget({ workspaceId, accountId, locationId, startDate, endDate }: MyBusinessWidgetProps) {
+  const [selectedAccount, setSelectedAccount] = useState<string>(accountId || "");
+  const [selectedLocation, setSelectedLocation] = useState<string>(locationId || "");
+
+  // Fetch available accounts and locations
+  const { data: accounts } = useQuery({
+    queryKey: ['/api/google/my-business/accounts', workspaceId],
+    queryFn: async () => {
+      const response = await fetch(`/api/google/my-business/${workspaceId}/accounts`);
+      if (!response.ok) throw new Error('Failed to fetch accounts');
+      return response.json();
+    },
+    enabled: !!workspaceId,
+  });
   const { data: businessData, isLoading, error } = useQuery({
-    queryKey: ['/api/google/my-business', workspaceId, accountId, locationId, startDate, endDate],
+    queryKey: ['/api/google/my-business', workspaceId, selectedAccount, selectedLocation, startDate, endDate],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (accountId) params.append('accountId', accountId);
-      if (locationId) params.append('locationId', locationId);
+      if (selectedAccount) params.append('accountId', selectedAccount);
+      if (selectedLocation) params.append('locationId', selectedLocation);
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
       
@@ -103,9 +118,41 @@ export function MyBusinessWidget({ workspaceId, accountId, locationId, startDate
             <Store className="h-5 w-5 text-orange-400" />
             <span>Google My Business</span>
           </div>
-          <Button variant="outline" size="sm" className="text-xs">
-            View Details
-          </Button>
+          <div className="flex items-center space-x-2">
+            {accounts && accounts.length > 0 && (
+              <>
+                <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+                  <SelectTrigger className="w-32 h-8 text-xs">
+                    <SelectValue placeholder="Account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.map((account: any) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedAccount && (
+                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                    <SelectTrigger className="w-32 h-8 text-xs">
+                      <SelectValue placeholder="Location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts
+                        .find((acc: any) => acc.id === selectedAccount)
+                        ?.locations?.map((location: any) => (
+                          <SelectItem key={location.id} value={location.id}>
+                            {location.title}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </>
+            )}
+            <Settings className="h-4 w-4 text-slate-400" />
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
