@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface PlatformChartProps {
@@ -10,13 +11,17 @@ interface PlatformChartProps {
 }
 
 export default function PlatformChart({ workspaceId, dateRange }: PlatformChartProps) {
-  // Mock data - in real app this would come from API
-  const data = [
-    { metric: 'Impressions', google: 487000, meta: 320000 },
-    { metric: 'Clicks', google: 18500, meta: 12800 },
-    { metric: 'Conversions', google: 450, meta: 320 },
-    { metric: 'Revenue', google: 35200, meta: 24800 },
-  ];
+  const { data, isLoading } = useQuery({
+    queryKey: [`/api/workspaces/${workspaceId}/platform-performance`, dateRange],
+    queryFn: async () => {
+      const response = await fetch(`/api/workspaces/${workspaceId}/platform-performance?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`);
+      if (!response.ok) throw new Error('Failed to fetch platform data');
+      return response.json();
+    },
+    enabled: !!workspaceId,
+  });
+
+  const platformData = data || [];
 
   return (
     <Card className="glass-card animate-slide-up" style={{ animationDelay: '0.5s' }}>
@@ -37,41 +42,47 @@ export default function PlatformChart({ workspaceId, dateRange }: PlatformChartP
       </CardHeader>
       <CardContent>
         <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(99, 102, 241, 0.1)" />
-              <XAxis 
-                dataKey="metric" 
-                tick={{ fill: '#94A3B8', fontSize: 12 }}
-                axisLine={{ stroke: 'rgba(99, 102, 241, 0.1)' }}
-              />
-              <YAxis 
-                tick={{ fill: '#94A3B8', fontSize: 12 }}
-                axisLine={{ stroke: 'rgba(99, 102, 241, 0.1)' }}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'rgba(30, 27, 75, 0.9)',
-                  border: '1px solid rgba(99, 102, 241, 0.2)',
-                  borderRadius: '8px',
-                  color: '#fff'
-                }}
-              />
-              <Legend />
-              <Bar 
-                dataKey="google" 
-                fill="#3B82F6" 
-                name="Google Ads"
-                radius={[2, 2, 0, 0]}
-              />
-              <Bar 
-                dataKey="meta" 
-                fill="#8B5CF6" 
-                name="Meta Ads"
-                radius={[2, 2, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={platformData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(99, 102, 241, 0.1)" />
+                <XAxis 
+                  dataKey="metric" 
+                  tick={{ fill: '#94A3B8', fontSize: 12 }}
+                  axisLine={{ stroke: 'rgba(99, 102, 241, 0.1)' }}
+                />
+                <YAxis 
+                  tick={{ fill: '#94A3B8', fontSize: 12 }}
+                  axisLine={{ stroke: 'rgba(99, 102, 241, 0.1)' }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'rgba(30, 27, 75, 0.9)',
+                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                    borderRadius: '8px',
+                    color: '#fff'
+                  }}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="google" 
+                  fill="#3B82F6" 
+                  name="Google Ads"
+                  radius={[2, 2, 0, 0]}
+                />
+                <Bar 
+                  dataKey="meta" 
+                  fill="#8B5CF6" 
+                  name="Meta Ads"
+                  radius={[2, 2, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </CardContent>
     </Card>
