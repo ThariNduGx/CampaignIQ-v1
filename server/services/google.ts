@@ -61,8 +61,30 @@ export class GoogleApiService {
     });
   }
 
+  async refreshAccessTokenIfNeeded(): Promise<boolean> {
+    try {
+      const tokenInfo = await this.oauth2Client.getAccessToken();
+      if (tokenInfo.token) {
+        console.log('Token refreshed successfully');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return false;
+    }
+  }
+
   async getUserProperties(): Promise<string[]> {
     try {
+      // Refresh token if needed
+      try {
+        await this.oauth2Client.getAccessToken();
+      } catch (tokenError) {
+        console.error('Token refresh failed:', tokenError);
+        throw new Error('Authentication failed - please reconnect your Google account');
+      }
+      
       // Try to get account summaries first, which contains properties
       const analytics = google.analyticsadmin({ version: 'v1beta', auth: this.oauth2Client });
       const response = await analytics.accountSummaries.list();
@@ -163,6 +185,14 @@ export class GoogleApiService {
 
   async getUserSites(): Promise<string[]> {
     try {
+      // Refresh token if needed
+      try {
+        await this.oauth2Client.getAccessToken();
+      } catch (tokenError) {
+        console.error('Token refresh failed:', tokenError);
+        throw new Error('Authentication failed - please reconnect your Google account');
+      }
+      
       const searchconsole = google.searchconsole({ version: 'v1', auth: this.oauth2Client });
       const response = await searchconsole.sites.list();
       return response.data.siteEntry?.map(site => site.siteUrl || '').filter(Boolean) || [];
@@ -174,6 +204,14 @@ export class GoogleApiService {
 
   async getSearchConsoleData(siteUrl: string, startDate: string, endDate: string): Promise<GoogleSearchConsoleData> {
     try {
+      // Refresh token if needed
+      try {
+        await this.oauth2Client.getAccessToken();
+      } catch (tokenError) {
+        console.error('Token refresh failed:', tokenError);
+        throw new Error('Authentication failed - please reconnect your Google account');
+      }
+      
       let targetSiteUrl = siteUrl;
       
       // If no specific site provided, get the first available one

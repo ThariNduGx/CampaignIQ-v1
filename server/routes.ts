@@ -612,6 +612,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Google connection not found' });
       }
 
+      // Check if token has expired
+      const now = new Date();
+      const tokenExpiry = connection.expiresAt ? new Date(connection.expiresAt) : null;
+      
+      if (tokenExpiry && now >= tokenExpiry) {
+        console.log('Google token has expired, attempting refresh...');
+        if (!connection.refreshToken) {
+          return res.status(401).json({ 
+            message: 'Authentication expired',
+            error: 'TOKEN_EXPIRED',
+            reconnectRequired: true 
+          });
+        }
+      }
+
       googleApiService.setCredentials({
         access_token: connection.accessToken,
         refresh_token: connection.refreshToken || undefined,
@@ -620,10 +635,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
       });
 
+      const tokenRefreshed = await googleApiService.refreshAccessTokenIfNeeded();
+      if (!tokenRefreshed && tokenExpiry && now >= tokenExpiry) {
+        return res.status(401).json({ 
+          message: 'Authentication expired',
+          error: 'TOKEN_REFRESH_FAILED',
+          reconnectRequired: true 
+        });
+      }
+
       const properties = await googleApiService.getUserProperties();
       res.json(properties);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching Google Analytics properties:', error);
+      if (error.message && error.message.includes('Authentication failed')) {
+        return res.status(401).json({ 
+          message: 'Authentication expired - please reconnect your Google account',
+          error: 'AUTH_FAILED',
+          reconnectRequired: true 
+        });
+      }
       res.status(500).json({ message: 'Failed to fetch Analytics properties' });
     }
   });
@@ -643,6 +674,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Google connection not found' });
       }
 
+      // Check if token has expired
+      const now = new Date();
+      const tokenExpiry = connection.expiresAt ? new Date(connection.expiresAt) : null;
+      
+      if (tokenExpiry && now >= tokenExpiry) {
+        console.log('Google token has expired, attempting refresh...');
+        if (!connection.refreshToken) {
+          return res.status(401).json({ 
+            message: 'Authentication expired',
+            error: 'TOKEN_EXPIRED',
+            reconnectRequired: true 
+          });
+        }
+      }
+
       googleApiService.setCredentials({
         access_token: connection.accessToken,
         refresh_token: connection.refreshToken || undefined,
@@ -651,10 +697,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
       });
 
+      const tokenRefreshed = await googleApiService.refreshAccessTokenIfNeeded();
+      if (!tokenRefreshed && tokenExpiry && now >= tokenExpiry) {
+        return res.status(401).json({ 
+          message: 'Authentication expired',
+          error: 'TOKEN_REFRESH_FAILED',
+          reconnectRequired: true 
+        });
+      }
+
       const sites = await googleApiService.getUserSites();
       res.json(sites);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching Google Search Console sites:', error);
+      if (error.message && error.message.includes('Authentication failed')) {
+        return res.status(401).json({ 
+          message: 'Authentication expired - please reconnect your Google account',
+          error: 'AUTH_FAILED',
+          reconnectRequired: true 
+        });
+      }
       res.status(500).json({ message: 'Failed to fetch Search Console sites' });
     }
   });
