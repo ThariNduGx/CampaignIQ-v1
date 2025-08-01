@@ -1,6 +1,13 @@
 export function generateOAuthUrl(platform: string, workspaceId: string): string {
-  const domains = process.env.REPLIT_DOMAINS?.split(',') || ['localhost:5000'];
-  const redirectUri = `https://${domains[0]}/api/oauth/callback`;
+  const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
+  let redirectUri: string;
+  
+  if (domains.length > 0) {
+    redirectUri = `https://${domains[0]}/api/oauth/callback`;
+  } else {
+    // Fallback for development
+    redirectUri = `http://localhost:5000/api/oauth/callback`;
+  }
   
   if (platform === 'google') {
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -51,8 +58,15 @@ export async function exchangeCodeForTokens(platform: string, code: string): Pro
   accountId: string;
   accountName: string;
 }> {
-  const domains = process.env.REPLIT_DOMAINS?.split(',') || ['localhost:5000'];
-  const redirectUri = `https://${domains[0]}/api/oauth/callback`;
+  const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
+  let redirectUri: string;
+  
+  if (domains.length > 0) {
+    redirectUri = `https://${domains[0]}/api/oauth/callback`;
+  } else {
+    // Fallback for development
+    redirectUri = `http://localhost:5000/api/oauth/callback`;
+  }
   
   if (platform === 'google') {
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
