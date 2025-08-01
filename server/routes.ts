@@ -450,7 +450,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mimeType = 'text/csv';
         fileExtension = 'csv';
       } else if (format === 'xlsx') {
-        content = generateHTMLReport(reportData, reportType);
+        const { generateXLSXReport } = await import('./services/reports');
+        content = generateXLSXReport(reportData);
         mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
         fileExtension = 'xlsx';
       } else if (format === 'pdf') {

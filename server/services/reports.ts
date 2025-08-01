@@ -3,6 +3,7 @@ import { googleApiService } from "./google";
 import { getMetaAdInsights } from "./meta";
 import { generateAIInsights } from "./openai";
 import puppeteer from 'puppeteer';
+import * as XLSX from 'xlsx';
 
 export interface ReportData {
   summary: {
@@ -410,4 +411,111 @@ export async function generatePDFReport(htmlContent: string): Promise<Buffer> {
   } finally {
     await browser.close();
   }
+}
+
+export function generateXLSXReport(data: ReportData): Buffer {
+  const { summary, platforms, aiInsights, dateRange } = data;
+
+  // Create workbook
+  const workbook = XLSX.utils.book_new();
+
+  // Summary sheet
+  const summaryData = [
+    ['CampaignIQ Performance Report'],
+    ['Report Period', `${dateRange.startDate} to ${dateRange.endDate}`],
+    ['Generated', new Date().toLocaleString()],
+    [''],
+    ['Metric', 'Value'],
+    ['Total Ad Spend', `$${summary.totalSpend.toFixed(2)}`],
+    ['Total Clicks', summary.totalClicks.toLocaleString()],
+    ['Total Impressions', summary.totalImpressions.toLocaleString()],
+    ['Total Conversions', summary.totalConversions],
+    ['Total Revenue', `$${summary.totalRevenue.toFixed(2)}`],
+    ['Average CTR', `${(summary.avgCtr * 100).toFixed(2)}%`],
+    ['Average ROAS', summary.avgRoas.toFixed(2)]
+  ];
+
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+
+  // Google Analytics sheet
+  if (platforms.google.analytics) {
+    const ga = platforms.google.analytics;
+    const analyticsData = [
+      ['Google Analytics Data'],
+      [''],
+      ['Metric', 'Value'],
+      ['Sessions', ga.sessions?.toLocaleString() || '0'],
+      ['Page Views', ga.pageviews?.toLocaleString() || '0'],
+      ['Bounce Rate', `${(ga.bounceRate || 0).toFixed(1)}%`],
+      ['Avg. Session Duration', `${Math.round(ga.avgSessionDuration || 0)}s`],
+      ['Goal Completions', ga.goalCompletions?.toLocaleString() || '0'],
+      ['Revenue', `$${(ga.revenue || 0).toLocaleString()}`]
+    ];
+
+    const analyticsSheet = XLSX.utils.aoa_to_sheet(analyticsData);
+    XLSX.utils.book_append_sheet(workbook, analyticsSheet, 'Google Analytics');
+  }
+
+  // Search Console sheet
+  if (platforms.google.searchConsole) {
+    const gsc = platforms.google.searchConsole;
+    const searchData = [
+      ['Google Search Console Data'],
+      [''],
+      ['Metric', 'Value'],
+      ['Total Clicks', gsc.clicks?.toLocaleString() || '0'],
+      ['Total Impressions', gsc.impressions?.toLocaleString() || '0'],
+      ['Average CTR', `${(gsc.ctr || 0).toFixed(2)}%`],
+      ['Average Position', (gsc.position || 0).toFixed(1)]
+    ];
+
+    const searchSheet = XLSX.utils.aoa_to_sheet(searchData);
+    XLSX.utils.book_append_sheet(workbook, searchSheet, 'Search Console');
+  }
+
+  // Meta Ads sheet
+  if (platforms.meta) {
+    const meta = platforms.meta;
+    const metaData = [
+      ['Meta Ads Data'],
+      [''],
+      ['Metric', 'Value'],
+      ['Impressions', meta.impressions?.toLocaleString() || '0'],
+      ['Clicks', meta.clicks?.toLocaleString() || '0'],
+      ['Ad Spend', `$${(meta.spend || 0).toFixed(2)}`],
+      ['Reach', meta.reach?.toLocaleString() || '0'],
+      ['CTR', `${(meta.ctr || 0).toFixed(2)}%`],
+      ['Cost per Click', `$${(meta.cpc || 0).toFixed(2)}`],
+      ['Cost per Mille', `$${(meta.cpm || 0).toFixed(2)}`],
+      ['Frequency', (meta.frequency || 0).toFixed(2)]
+    ];
+
+    const metaSheet = XLSX.utils.aoa_to_sheet(metaData);
+    XLSX.utils.book_append_sheet(workbook, metaSheet, 'Meta Ads');
+  }
+
+  // AI Insights sheet
+  if (aiInsights && aiInsights.length > 0) {
+    const insightsData = [
+      ['AI-Powered Insights'],
+      [''],
+      ['Title', 'Content', 'Type']
+    ];
+
+    aiInsights.forEach((insight: any) => {
+      insightsData.push([
+        insight.title || '',
+        insight.content || '',
+        insight.type || 'info'
+      ]);
+    });
+
+    const insightsSheet = XLSX.utils.aoa_to_sheet(insightsData);
+    XLSX.utils.book_append_sheet(workbook, insightsSheet, 'AI Insights');
+  }
+
+  // Generate buffer
+  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  return buffer;
 }
