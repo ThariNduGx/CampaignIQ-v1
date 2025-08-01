@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { TrendingUp, Users, Eye, MousePointer, DollarSign } from "lucide-react";
+import { TrendingUp, Users, Eye, MousePointer, DollarSign, Settings } from "lucide-react";
+import { useState } from "react";
 
 interface AnalyticsWidgetProps {
   workspaceId: string;
@@ -12,11 +14,23 @@ interface AnalyticsWidgetProps {
 }
 
 export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate }: AnalyticsWidgetProps) {
+  const [selectedProperty, setSelectedProperty] = useState<string>(propertyId || "");
+
+  // Fetch available properties
+  const { data: properties } = useQuery({
+    queryKey: ['/api/google/analytics/properties', workspaceId],
+    queryFn: async () => {
+      const response = await fetch(`/api/google/analytics/${workspaceId}/properties`);
+      if (!response.ok) throw new Error('Failed to fetch properties');
+      return response.json();
+    },
+    enabled: !!workspaceId,
+  });
   const { data: analyticsData, isLoading, error } = useQuery({
-    queryKey: ['/api/google/analytics', workspaceId, propertyId, startDate, endDate],
+    queryKey: ['/api/google/analytics', workspaceId, selectedProperty, startDate, endDate],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (propertyId) params.append('propertyId', propertyId);
+      if (selectedProperty) params.append('propertyId', selectedProperty);
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
       
@@ -102,9 +116,23 @@ export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate }:
             <TrendingUp className="h-5 w-5 text-blue-400" />
             <span>Google Analytics</span>
           </div>
-          <Button variant="outline" size="sm" className="text-xs">
-            View Details
-          </Button>
+          <div className="flex items-center space-x-2">
+            {properties && properties.length > 0 && (
+              <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+                <SelectTrigger className="w-32 h-8 text-xs">
+                  <SelectValue placeholder="Property" />
+                </SelectTrigger>
+                <SelectContent>
+                  {properties.map((property: string) => (
+                    <SelectItem key={property} value={property}>
+                      {property}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Settings className="h-4 w-4 text-slate-400" />
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">

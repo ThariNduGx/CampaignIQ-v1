@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Search, MousePointer, TrendingUp, Hash } from "lucide-react";
+import { Search, MousePointer, TrendingUp, Hash, Settings } from "lucide-react";
+import { useState } from "react";
 
 interface SearchConsoleWidgetProps {
   workspaceId: string;
@@ -12,11 +14,23 @@ interface SearchConsoleWidgetProps {
 }
 
 export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate }: SearchConsoleWidgetProps) {
+  const [selectedSite, setSelectedSite] = useState<string>(siteUrl || "");
+
+  // Fetch available sites
+  const { data: sites } = useQuery({
+    queryKey: ['/api/google/search-console/sites', workspaceId],
+    queryFn: async () => {
+      const response = await fetch(`/api/google/search-console/${workspaceId}/sites`);
+      if (!response.ok) throw new Error('Failed to fetch sites');
+      return response.json();
+    },
+    enabled: !!workspaceId,
+  });
   const { data: searchData, isLoading, error } = useQuery({
-    queryKey: ['/api/google/search-console', workspaceId, siteUrl, startDate, endDate],
+    queryKey: ['/api/google/search-console', workspaceId, selectedSite, startDate, endDate],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (siteUrl) params.append('siteUrl', siteUrl);
+      if (selectedSite) params.append('siteUrl', selectedSite);
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
       
@@ -102,9 +116,23 @@ export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate }
             <Search className="h-5 w-5 text-green-400" />
             <span>Google Search Console</span>
           </div>
-          <Button variant="outline" size="sm" className="text-xs">
-            View Details
-          </Button>
+          <div className="flex items-center space-x-2">
+            {sites && sites.length > 0 && (
+              <Select value={selectedSite} onValueChange={setSelectedSite}>
+                <SelectTrigger className="w-48 h-8 text-xs">
+                  <SelectValue placeholder="Select Site" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sites.map((site: string) => (
+                    <SelectItem key={site} value={site}>
+                      {site.replace('https://', '').replace('http://', '')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Settings className="h-4 w-4 text-slate-400" />
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">

@@ -241,6 +241,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get available Google Analytics properties
+  app.get('/api/google/analytics/:workspaceId/properties', isAuthenticated, async (req, res) => {
+    try {
+      const workspaceId = req.params.workspaceId;
+      const userId = (req.user as any)?.claims?.sub;
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const connection = await storage.getConnection(workspaceId, 'google');
+      if (!connection) {
+        return res.status(404).json({ message: 'Google connection not found' });
+      }
+
+      googleApiService.setCredentials({
+        access_token: connection.accessToken,
+        refresh_token: connection.refreshToken || undefined,
+        scope: 'https://www.googleapis.com/auth/analytics.readonly',
+        token_type: 'Bearer',
+        expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
+      });
+
+      const properties = await googleApiService.getUserProperties();
+      res.json(properties);
+    } catch (error) {
+      console.error('Error fetching Google Analytics properties:', error);
+      res.status(500).json({ message: 'Failed to fetch Analytics properties' });
+    }
+  });
+
+  // Get available Google Search Console sites
+  app.get('/api/google/search-console/:workspaceId/sites', isAuthenticated, async (req, res) => {
+    try {
+      const workspaceId = req.params.workspaceId;
+      const userId = (req.user as any)?.claims?.sub;
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const connection = await storage.getConnection(workspaceId, 'google');
+      if (!connection) {
+        return res.status(404).json({ message: 'Google connection not found' });
+      }
+
+      googleApiService.setCredentials({
+        access_token: connection.accessToken,
+        refresh_token: connection.refreshToken || undefined,
+        scope: 'https://www.googleapis.com/auth/webmasters.readonly',
+        token_type: 'Bearer',
+        expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
+      });
+
+      const sites = await googleApiService.getUserSites();
+      res.json(sites);
+    } catch (error) {
+      console.error('Error fetching Google Search Console sites:', error);
+      res.status(500).json({ message: 'Failed to fetch Search Console sites' });
+    }
+  });
+
   // Google Analytics data endpoint
   app.get('/api/google/analytics/:workspaceId', isAuthenticated, async (req, res) => {
     try {
@@ -269,7 +331,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const analyticsData = await googleApiService.getAnalyticsData(
         startDate as string || '2025-07-02',
-        endDate as string || '2025-08-01'
+        endDate as string || '2025-08-01',
+        propertyId as string
       );
 
       res.json(analyticsData);
@@ -307,7 +370,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const searchConsoleData = await googleApiService.getSearchConsoleData(
         startDate as string || '2024-01-01',
-        endDate as string || '2024-01-31'
+        endDate as string || '2024-01-31',
+        siteUrl as string
       );
 
       res.json(searchConsoleData);

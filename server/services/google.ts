@@ -84,32 +84,33 @@ export class GoogleApiService {
     }
   }
 
-  async getAnalyticsData(startDate: string, endDate: string): Promise<GoogleAnalyticsData> {
+  async getAnalyticsData(startDate: string, endDate: string, propertyId?: string): Promise<GoogleAnalyticsData> {
     try {
-      // First try to get properties through account summaries
-      let properties = await this.getUserProperties();
+      let targetPropertyId = propertyId;
       
-      // If that fails, try with a common demo property or return empty data
-      if (properties.length === 0) {
-        console.log('No Analytics properties found for user');
-        return {
-          sessions: 0,
-          pageviews: 0,
-          bounceRate: 0,
-          avgSessionDuration: 0,
-          goalCompletions: 0,
-          revenue: 0,
-        };
+      // If no specific property provided, get the first available one
+      if (!targetPropertyId) {
+        const properties = await this.getUserProperties();
+        if (properties.length === 0) {
+          console.log('No Analytics properties found for user');
+          return {
+            sessions: 0,
+            pageviews: 0,
+            bounceRate: 0,
+            avgSessionDuration: 0,
+            goalCompletions: 0,
+            revenue: 0,
+          };
+        }
+        targetPropertyId = properties[0];
       }
 
-      // Use the first available property
-      const propertyId = properties[0];
-      console.log('Using Analytics property:', propertyId);
+      console.log('Using Analytics property:', targetPropertyId);
       
       const analytics = google.analyticsdata({ version: 'v1beta', auth: this.oauth2Client });
       
       const response = await analytics.properties.runReport({
-        property: `properties/${propertyId}`,
+        property: `properties/${targetPropertyId}`,
         requestBody: {
           dateRanges: [{ startDate, endDate }],
           metrics: [
@@ -126,7 +127,7 @@ export class GoogleApiService {
       const rows = response.data.rows || [];
       const metrics = rows[0]?.metricValues || [];
 
-      return {
+      const result = {
         sessions: parseInt(metrics[0]?.value || '0'),
         pageviews: parseInt(metrics[1]?.value || '0'),
         bounceRate: parseFloat(metrics[2]?.value || '0'),
@@ -134,6 +135,9 @@ export class GoogleApiService {
         goalCompletions: parseInt(metrics[4]?.value || '0'),
         revenue: parseFloat(metrics[5]?.value || '0'),
       };
+
+      console.log('Analytics data result:', result);
+      return result;
     } catch (error) {
       console.error('Error fetching Google Analytics data:', error);
       // Return empty data instead of throwing
@@ -159,26 +163,30 @@ export class GoogleApiService {
     }
   }
 
-  async getSearchConsoleData(startDate: string, endDate: string): Promise<GoogleSearchConsoleData> {
+  async getSearchConsoleData(startDate: string, endDate: string, siteUrl?: string): Promise<GoogleSearchConsoleData> {
     try {
-      const sites = await this.getUserSites();
+      let targetSiteUrl = siteUrl;
       
-      if (sites.length === 0) {
-        return {
-          clicks: 0,
-          impressions: 0,
-          ctr: 0,
-          position: 0,
-          queries: [],
-        };
+      // If no specific site provided, get the first available one
+      if (!targetSiteUrl) {
+        const sites = await this.getUserSites();
+        if (sites.length === 0) {
+          return {
+            clicks: 0,
+            impressions: 0,
+            ctr: 0,
+            position: 0,
+            queries: [],
+          };
+        }
+        targetSiteUrl = sites[0];
       }
 
-      // Use the first available site
-      const siteUrl = sites[0];
+      console.log('Using Search Console site:', targetSiteUrl);
       const searchconsole = google.searchconsole({ version: 'v1', auth: this.oauth2Client });
       
       const response = await searchconsole.searchanalytics.query({
-        siteUrl,
+        siteUrl: targetSiteUrl,
         requestBody: {
           startDate,
           endDate,
