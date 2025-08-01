@@ -145,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // OAuth callback route - Updated to handle both Google and Meta callbacks
+  // OAuth callback routes - Handle both Google and Meta callbacks
   app.get('/api/oauth/callback', async (req, res) => {
     try {
       const { code, state, error, error_description } = req.query;
@@ -186,6 +186,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.redirect(`/?connection=success&platform=${platform}`);
     } catch (error) {
       console.error("Error handling OAuth callback:", error);
+      res.redirect(`/?connection=error`);
+    }
+  });
+
+  // Additional Google OAuth callback route for the configured redirect URI
+  app.get('/auth/google/callback', async (req, res) => {
+    try {
+      const { code, state, error, error_description } = req.query;
+      
+      // Handle OAuth errors
+      if (error) {
+        console.error(`Google OAuth error: ${error} - ${error_description}`);
+        return res.redirect(`/?connection=error&error=${error}`);
+      }
+      
+      if (!code || !state) {
+        return res.status(400).json({ message: "Missing required parameters" });
+      }
+
+      console.log(`Google OAuth callback received for workspace: ${state}`);
+      
+      const tokens = await exchangeCodeForTokens('google', code as string, req.get('host'));
+      
+      // Store the connection in database
+      const connection = await storage.createPlatformConnection({
+        workspaceId: state as string,
+        platform: 'google',
+        accountId: tokens.accountId,
+        accountName: tokens.accountName,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt: new Date(Date.now() + tokens.expiresIn * 1000)
+      });
+
+      res.redirect(`/?connection=success&platform=google`);
+    } catch (error) {
+      console.error("Error handling Google OAuth callback:", error);
       res.redirect(`/?connection=error`);
     }
   });
