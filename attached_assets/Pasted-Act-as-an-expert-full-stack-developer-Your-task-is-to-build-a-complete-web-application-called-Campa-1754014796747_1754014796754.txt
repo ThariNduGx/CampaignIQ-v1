@@ -1,0 +1,67 @@
+Act as an expert full-stack developer. Your task is to build a complete web application called CampaignIQ. The target users for this app are SEO specialists, digital marketers, and digital marketing managers, so the user interface must be clean, intuitive, and provide clear, actionable insights without requiring technical expertise.
+
+The primary goal of CampaignIQ is to eliminate manual reporting by automatically aggregating performance data from multiple marketing platforms into a single, unified dashboard.
+
+Technology Stack:
+
+Frontend: Next.js 15+ (App Router), React 18+, TypeScript, TanStack Query for data fetching, Tailwind CSS with Radix UI for components, and Recharts for data visualization.
+
+Backend: Next.js API Routes, PostgreSQL database, and Drizzle ORM for type-safe database access.
+
+Authentication:
+
+For app users: Standard email/password login using JWT and bcrypt.
+
+For platform connections: OAuth 2.0 flow to connect to external APIs.
+
+External APIs:
+
+Google (Ads, Analytics, Search Console)
+
+Meta (Facebook Ads)
+
+OpenAI API (for AI-generated insights)
+
+Deployment Target: Vercel
+
+Core Features and Functionalities:
+
+User Authentication & Workspace:
+
+Implement a secure user signup and login system.
+
+After logging in, a user should be able to create a "Workspace" to contain their marketing data.
+
+Secure Platform Connections (OAuth 2.0):
+
+Create a "Connections" or "Settings" page within a workspace.
+
+On this page, provide buttons to "Connect Google Account" and "Connect Meta Account."
+
+Implement the full OAuth 2.0 flow for each. On success, securely store the access_token and refresh_token (encrypted) in the database, associated with the user's workspace.
+
+The backend must include logic to automatically refresh expired tokens.
+
+Unified Analytics Dashboard:
+
+This is the main page of the app. It must be clean and professional.
+
+Global Filter: At the top, include a date range picker that controls all data displayed on the dashboard.
+
+Summary Cards: Display high-level, aggregated KPIs (Total Spend, Total Conversions, Overall ROAS) in large, easy-to-read cards.
+
+Performance Trend Chart: Use Recharts to create a line chart showing performance over the selected date range (e.g., plot Spend vs. Conversions).
+
+Platform Comparison Chart: Use Recharts to create a bar chart comparing a key metric (like Spend or Conversions) across platforms (Google vs. Meta).
+
+Detailed Data Table: Display the normalized campaign data in a table with columns for Campaign Name, Platform, Impressions, Clicks, Spend, Conversions, etc. The table should be sortable.
+
+AI-Powered Insights:
+
+Include a section on the dashboard titled "AI Insights."
+
+Add a button that says "Generate Performance Summary."
+
+When clicked, the backend should send the aggregated data for the selected date range to the OpenAI API with a prompt like, "Summarize this marketing performance data in a few bullet points for a non-technical manager. Highlight key wins and potential issues."
+
+Display the formatted text response from OpenAI in the UI. and every user must be able to connect their own OPenAI key to get Ai insights. Web app design must be very modern looking and futuristic. use modern icons, animations, colors
