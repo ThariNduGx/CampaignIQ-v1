@@ -34,12 +34,24 @@ export default function ExportReports({ workspaceId }: ExportReportsProps) {
       // Use the apiRequest function to handle authentication properly
       const response = await apiRequest("POST", `/api/workspaces/${workspaceId}/export`, params);
       
-      // Get the text content from the response
-      const content = await response.text();
+      // Create blob with proper content type based on format
+      let blob: Blob;
+      let contentType: string;
       
-      // Create blob with proper content type
-      const contentType = params.format === 'csv' ? 'text/csv' : 'text/html';
-      const blob = new Blob([content], { type: contentType });
+      if (params.format === 'csv') {
+        const content = await response.text();
+        contentType = 'text/csv';
+        blob = new Blob([content], { type: contentType });
+      } else if (params.format === 'pdf') {
+        const content = await response.arrayBuffer();
+        contentType = 'application/pdf';
+        blob = new Blob([content], { type: contentType });
+      } else {
+        const content = await response.text();
+        contentType = 'text/html';
+        blob = new Blob([content], { type: contentType });
+      }
+      
       const url = window.URL.createObjectURL(blob);
       const filename = `campaigniq-${params.reportType}-${params.startDate}-to-${params.endDate}.${params.format}`;
       

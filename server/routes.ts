@@ -360,10 +360,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { reportType, format, startDate, endDate } = req.body;
       
       // Generate report data
-      const { generateReportData, generateCSVReport, generateHTMLReport } = await import('./services/reports');
+      const { generateReportData, generateCSVReport, generateHTMLReport, generatePDFReport } = await import('./services/reports');
       const reportData = await generateReportData(workspaceId, startDate, endDate);
       
-      let content: string;
+      let content: string | Buffer;
       let mimeType: string;
       let fileExtension: string;
       
@@ -371,8 +371,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content = generateCSVReport(reportData);
         mimeType = 'text/csv';
         fileExtension = 'csv';
+      } else if (format === 'xlsx') {
+        content = generateHTMLReport(reportData, reportType);
+        mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        fileExtension = 'xlsx';
+      } else if (format === 'pdf') {
+        // Generate proper PDF using Puppeteer
+        const htmlContent = generateHTMLReport(reportData, reportType);
+        content = await generatePDFReport(htmlContent);
+        mimeType = 'application/pdf';
+        fileExtension = 'pdf';
       } else {
-        // Generate HTML for PDF or direct HTML download
+        // Default to HTML
         content = generateHTMLReport(reportData, reportType);
         mimeType = 'text/html';
         fileExtension = 'html';
@@ -383,10 +393,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.setHeader('Content-Type', mimeType);
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Length', Buffer.byteLength(content, 'utf8'));
-      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
       
-      res.send(content);
+      if (Buffer.isBuffer(content)) {
+        res.setHeader('Content-Length', content.length);
+        res.send(content);
+      } else {
+        res.setHeader('Content-Length', Buffer.byteLength(content, 'utf8'));
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+        res.send(content);
+      }
       
     } catch (error) {
       console.error("Error generating report:", error);
@@ -512,9 +527,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const analyticsData = await googleApiService.getAnalyticsData(
+        propertyId as string || '',
         startDate as string || '2025-07-02',
-        endDate as string || '2025-08-01',
-        propertyId as string
+        endDate as string || '2025-08-01'
       );
 
       res.json(analyticsData);
@@ -551,9 +566,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const searchConsoleData = await googleApiService.getSearchConsoleData(
+        siteUrl as string || '',
         startDate as string || '2024-01-01',
-        endDate as string || '2024-01-31',
-        siteUrl as string
+        endDate as string || '2024-01-31'
       );
 
       res.json(searchConsoleData);

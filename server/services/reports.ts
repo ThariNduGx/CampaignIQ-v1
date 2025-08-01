@@ -2,6 +2,7 @@ import { storage } from "../storage";
 import { googleApiService } from "./google";
 import { getMetaAdInsights } from "./meta";
 import { generateAIInsights } from "./openai";
+import puppeteer from 'puppeteer';
 
 export interface ReportData {
   summary: {
@@ -379,4 +380,31 @@ export function generateHTMLReport(data: ReportData, reportType: string): string
 </html>`;
 
   return html;
+}
+
+export async function generatePDFReport(htmlContent: string): Promise<Buffer> {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+  
+  try {
+    const page = await browser.newPage();
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20px',
+        right: '20px',
+        bottom: '20px',
+        left: '20px'
+      }
+    });
+    
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
 }
