@@ -151,6 +151,8 @@ export class GoogleApiService {
       
       const analytics = google.analyticsdata({ version: 'v1beta', auth: this.oauth2Client });
       
+      console.log(`Fetching Analytics data for property ${targetPropertyId} from ${startDate} to ${endDate}`);
+      
       const response = await analytics.properties.runReport({
         property: `properties/${targetPropertyId}`,
         requestBody: {
@@ -166,6 +168,8 @@ export class GoogleApiService {
           dimensions: []
         },
       });
+
+      console.log('Raw Analytics API response:', JSON.stringify(response.data, null, 2));
 
       const rows = response.data.rows || [];
       const metrics = rows[0]?.metricValues || [];

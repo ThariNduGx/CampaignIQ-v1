@@ -616,21 +616,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Google connection not found' });
       }
 
-      // Check if token has expired
-      const now = new Date();
-      const tokenExpiry = connection.expiresAt ? new Date(connection.expiresAt) : null;
-      
-      if (tokenExpiry && now >= tokenExpiry) {
-        console.log('Google token has expired, attempting refresh...');
-        if (!connection.refreshToken) {
-          return res.status(401).json({ 
-            message: 'Authentication expired',
-            error: 'TOKEN_EXPIRED',
-            reconnectRequired: true 
-          });
-        }
-      }
-
+      // Set credentials first
       googleApiService.setCredentials({
         access_token: connection.accessToken,
         refresh_token: connection.refreshToken || undefined,
@@ -639,10 +625,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
       });
 
-      const tokenRefreshed = await googleApiService.refreshAccessTokenIfNeeded();
-      if (!tokenRefreshed && tokenExpiry && now >= tokenExpiry) {
+      // Try to refresh token if needed
+      try {
+        const tokenRefreshed = await googleApiService.refreshAccessTokenIfNeeded();
+        if (!tokenRefreshed) {
+          console.log('Token refresh may have failed, but continuing...');
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
         return res.status(401).json({ 
-          message: 'Authentication expired',
+          message: 'Authentication expired - please reconnect your Google account',
           error: 'TOKEN_REFRESH_FAILED',
           reconnectRequired: true 
         });
@@ -678,21 +670,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Google connection not found' });
       }
 
-      // Check if token has expired
-      const now = new Date();
-      const tokenExpiry = connection.expiresAt ? new Date(connection.expiresAt) : null;
-      
-      if (tokenExpiry && now >= tokenExpiry) {
-        console.log('Google token has expired, attempting refresh...');
-        if (!connection.refreshToken) {
-          return res.status(401).json({ 
-            message: 'Authentication expired',
-            error: 'TOKEN_EXPIRED',
-            reconnectRequired: true 
-          });
-        }
-      }
-
+      // Set credentials first
       googleApiService.setCredentials({
         access_token: connection.accessToken,
         refresh_token: connection.refreshToken || undefined,
@@ -701,16 +679,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
       });
 
-      const tokenRefreshed = await googleApiService.refreshAccessTokenIfNeeded();
-      if (!tokenRefreshed && tokenExpiry && now >= tokenExpiry) {
+      // Try to refresh token if needed
+      try {
+        const tokenRefreshed = await googleApiService.refreshAccessTokenIfNeeded();
+        if (!tokenRefreshed) {
+          console.log('Token refresh may have failed for Search Console, but continuing...');
+        }
+      } catch (refreshError) {
+        console.error('Search Console token refresh failed:', refreshError);
         return res.status(401).json({ 
-          message: 'Authentication expired',
+          message: 'Authentication expired - please reconnect your Google account',
           error: 'TOKEN_REFRESH_FAILED',
           reconnectRequired: true 
         });
       }
 
       const sites = await googleApiService.getUserSites();
+      console.log('Search Console sites fetched:', sites);
       res.json(sites);
     } catch (error: any) {
       console.error('Error fetching Google Search Console sites:', error);
@@ -835,8 +820,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const analyticsData = await googleApiService.getAnalyticsData(
         targetPropertyId,
-        startDate as string || '2025-07-02',
-        endDate as string || '2025-08-01'
+        startDate as string || '2024-07-01',
+        endDate as string || '2024-12-31'
       );
 
       res.json(analyticsData);
@@ -888,8 +873,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const searchConsoleData = await googleApiService.getSearchConsoleData(
         targetSiteUrl,
-        startDate as string || '2024-01-01',
-        endDate as string || '2024-01-31'
+        startDate as string || '2024-07-01',
+        endDate as string || '2024-12-31'
       );
 
       res.json(searchConsoleData);
@@ -928,7 +913,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Get user's first available property dynamically
           const properties = await googleApiService.getUserProperties();
           if (properties.length > 0) {
-            const analyticsData = await googleApiService.getAnalyticsData(properties[0], start as string, end as string);
+            // Use safe date defaults if dates are not provided or invalid
+            const safeStartDate = start as string || '2024-07-01';
+            const safeEndDate = end as string || '2024-12-31';
+            console.log(`Fetching Analytics data with dates: ${safeStartDate} to ${safeEndDate}`);
+            
+            const analyticsData = await googleApiService.getAnalyticsData(properties[0], safeStartDate, safeEndDate);
             googleData.conversions = analyticsData.goalCompletions || 0;
             googleData.revenue = analyticsData.revenue || 0;
           }
@@ -936,7 +926,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Get Search Console data for impressions and clicks
           const sites = await googleApiService.getUserSites();
           if (sites.length > 0) {
-            const searchConsoleData = await googleApiService.getSearchConsoleData(sites[0], start as string, end as string);
+            const safeStartDate = start as string || '2024-07-01';
+            const safeEndDate = end as string || '2024-12-31';
+            console.log(`Fetching Search Console data with dates: ${safeStartDate} to ${safeEndDate}`);
+            
+            const searchConsoleData = await googleApiService.getSearchConsoleData(sites[0], safeStartDate, safeEndDate);
             googleData.impressions = searchConsoleData.impressions || 0;
             googleData.clicks = searchConsoleData.clicks || 0;
           }
