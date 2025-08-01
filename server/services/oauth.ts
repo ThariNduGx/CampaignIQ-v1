@@ -1,18 +1,12 @@
 export function generateOAuthUrl(platform: string, workspaceId: string, host?: string): string {
+  const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
   let redirectUri: string;
   
-  // Use the Google redirect URI from environment variable if available
-  if (platform === 'google' && process.env.GOOGLE_REDIRECT_URI) {
-    redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  if (domains.length > 0) {
+    redirectUri = `https://${domains[0]}/api/oauth/callback`;
   } else {
-    // Use REPLIT_DOMAINS environment variable
-    const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
-    if (domains.length > 0) {
-      redirectUri = `https://${domains[0]}/api/oauth/callback`;
-    } else {
-      // Fallback for development
-      redirectUri = `http://localhost:5000/api/oauth/callback`;
-    }
+    // Fallback for development
+    redirectUri = `http://localhost:5000/api/oauth/callback`;
   }
   
   console.log(`Generated ${platform} OAuth URL with redirect URI: ${redirectUri}`);
@@ -67,20 +61,14 @@ export async function exchangeCodeForTokens(platform: string, code: string, host
   accountId: string;
   accountName: string;
 }> {
+  const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
   let redirectUri: string;
   
-  // Use the Google redirect URI from environment variable if available
-  if (platform === 'google' && process.env.GOOGLE_REDIRECT_URI) {
-    redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  if (domains.length > 0) {
+    redirectUri = `https://${domains[0]}/api/oauth/callback`;
   } else {
-    // Use REPLIT_DOMAINS environment variable
-    const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
-    if (domains.length > 0) {
-      redirectUri = `https://${domains[0]}/api/oauth/callback`;
-    } else {
-      // Fallback for development
-      redirectUri = `http://localhost:5000/api/oauth/callback`;
-    }
+    // Fallback for development
+    redirectUri = `http://localhost:5000/api/oauth/callback`;
   }
   
   console.log(`Exchanging ${platform} code with redirect URI: ${redirectUri}`);

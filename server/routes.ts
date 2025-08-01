@@ -137,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid platform" });
       }
 
-      const authUrl = generateOAuthUrl(platform, workspaceId, req.get('host'));
+      const authUrl = generateOAuthUrl(platform, workspaceId);
       res.json({ authUrl });
     } catch (error) {
       console.error("Error initiating OAuth:", error);
@@ -170,7 +170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`OAuth callback received for platform: ${platform}, referrer: ${referrer}`);
       
-      const tokens = await exchangeCodeForTokens(platform, code as string, req.get('host'));
+      const tokens = await exchangeCodeForTokens(platform, code as string);
       
       // Store the connection in database
       const connection = await storage.createPlatformConnection({
@@ -186,43 +186,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.redirect(`/?connection=success&platform=${platform}`);
     } catch (error) {
       console.error("Error handling OAuth callback:", error);
-      res.redirect(`/?connection=error`);
-    }
-  });
-
-  // Additional Google OAuth callback route for the configured redirect URI
-  app.get('/auth/google/callback', async (req, res) => {
-    try {
-      const { code, state, error, error_description } = req.query;
-      
-      // Handle OAuth errors
-      if (error) {
-        console.error(`Google OAuth error: ${error} - ${error_description}`);
-        return res.redirect(`/?connection=error&error=${error}`);
-      }
-      
-      if (!code || !state) {
-        return res.status(400).json({ message: "Missing required parameters" });
-      }
-
-      console.log(`Google OAuth callback received for workspace: ${state}`);
-      
-      const tokens = await exchangeCodeForTokens('google', code as string, req.get('host'));
-      
-      // Store the connection in database
-      const connection = await storage.createPlatformConnection({
-        workspaceId: state as string,
-        platform: 'google',
-        accountId: tokens.accountId,
-        accountName: tokens.accountName,
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        expiresAt: new Date(Date.now() + tokens.expiresIn * 1000)
-      });
-
-      res.redirect(`/?connection=success&platform=google`);
-    } catch (error) {
-      console.error("Error handling Google OAuth callback:", error);
       res.redirect(`/?connection=error`);
     }
   });
