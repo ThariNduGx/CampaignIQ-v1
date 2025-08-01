@@ -105,17 +105,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // OAuth callback route - Updated to handle Google's callback format
+  // OAuth callback route - Updated to handle both Google and Meta callbacks
   app.get('/api/oauth/callback', async (req, res) => {
     try {
-      const { code, state } = req.query;
+      const { code, state, error, error_description } = req.query;
+      
+      // Handle OAuth errors
+      if (error) {
+        console.error(`OAuth error: ${error} - ${error_description}`);
+        return res.redirect(`/?connection=error&error=${error}`);
+      }
       
       if (!code || !state) {
         return res.status(400).json({ message: "Missing required parameters" });
       }
 
-      // Determine platform from the referrer or assume Google for now
-      const platform = 'google'; // Since we're implementing Google first
+      // Determine platform from the referrer URL and state parameter
+      const referrer = req.get('Referer') || '';
+      let platform = 'google'; // Default to Google
+      
+      if (referrer.includes('facebook.com') || referrer.includes('meta.com')) {
+        platform = 'meta';
+      }
+      
+      console.log(`OAuth callback received for platform: ${platform}, referrer: ${referrer}`);
       
       const tokens = await exchangeCodeForTokens(platform, code as string);
       

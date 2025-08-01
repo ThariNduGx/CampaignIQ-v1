@@ -89,6 +89,8 @@ export default function MetaAdsWidget({ workspaceId }: MetaAdsWidgetProps) {
   };
 
   if (error) {
+    const isConnectionError = error.message.includes('Meta connection not found');
+    
     return (
       <Card className="h-fit">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -96,31 +98,44 @@ export default function MetaAdsWidget({ workspaceId }: MetaAdsWidgetProps) {
             <CardTitle className="text-base font-medium">Meta Ads</CardTitle>
             <CardDescription>Facebook & Instagram advertising performance</CardDescription>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => disconnectMutation.mutate()}
-            disabled={disconnectMutation.isPending}
-            className="text-muted-foreground hover:text-destructive"
-          >
-            <Unlink className="h-4 w-4" />
-          </Button>
+          {!isConnectionError && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => disconnectMutation.mutate()}
+              disabled={disconnectMutation.isPending}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <Unlink className="h-4 w-4" />
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="rounded-full bg-destructive/10 p-3 mb-4">
-              <TrendingUp className="h-6 w-6 text-destructive" />
+            <div className="rounded-full bg-yellow-500/10 p-3 mb-4">
+              <TrendingUp className="h-6 w-6 text-yellow-500" />
             </div>
-            <h3 className="font-medium text-sm mb-2">Connection Error</h3>
+            <h3 className="font-medium text-sm mb-2">
+              {isConnectionError ? 'Not Connected' : 'Connection Error'}
+            </h3>
             <p className="text-xs text-muted-foreground mb-4">
-              Unable to fetch Meta advertising data. Please check your connection.
+              {isConnectionError 
+                ? 'Connect your Meta advertising account to view performance data.'
+                : 'Unable to fetch Meta advertising data. Please check your connection.'
+              }
             </p>
             <Button 
               size="sm" 
               variant="outline"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                if (isConnectionError) {
+                  window.location.href = '/connections';
+                } else {
+                  window.location.reload();
+                }
+              }}
             >
-              Retry Connection
+              {isConnectionError ? 'Connect Account' : 'Retry Connection'}
             </Button>
           </div>
         </CardContent>
