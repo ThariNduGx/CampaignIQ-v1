@@ -1,8 +1,10 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { isUnauthorizedError } from "@/lib/authUtils";
 import Sidebar from "@/components/layout/sidebar";
-import { Brain, Lightbulb, TrendingUp, AlertTriangle, Target, BarChart3, Zap } from "lucide-react";
+import { Brain, Lightbulb, TrendingUp, AlertTriangle, Target, BarChart3, Zap, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +16,13 @@ interface AIInsightsProps {
 export default function AIInsights({ workspaceId }: AIInsightsProps) {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
+
+  // Fetch real AI insights data
+  const { data: insights, isLoading: insightsLoading, error: insightsError } = useQuery({
+    queryKey: [`/api/workspaces/${workspaceId}/ai-insights`],
+    enabled: !!workspaceId && isAuthenticated,
+    retry: false,
+  });
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -30,6 +39,24 @@ export default function AIInsights({ workspaceId }: AIInsightsProps) {
     }
   }, [isAuthenticated, isLoading, toast]);
 
+  // Handle insights query errors
+  useEffect(() => {
+    if (insightsError) {
+      if (isUnauthorizedError(insightsError as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      console.error('AI insights error:', insightsError);
+    }
+  }, [insightsError, toast]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -41,65 +68,6 @@ export default function AIInsights({ workspaceId }: AIInsightsProps) {
   if (!isAuthenticated) {
     return null;
   }
-
-  // Sample AI insights data
-  const insights = [
-    {
-      id: "1",
-      type: "opportunity",
-      priority: "high",
-      title: "Optimize Ad Scheduling for Better Performance",
-      content: "Analysis shows that your Meta ads perform 34% better between 7 PM - 10 PM on weekdays. Consider adjusting your ad schedule to allocate more budget during these peak engagement hours to maximize ROAS.",
-      impact: "Potential 25-30% increase in conversions",
-      action: "Adjust ad scheduling",
-      platform: "Meta Ads",
-      confidence: 92
-    },
-    {
-      id: "2", 
-      type: "warning",
-      priority: "high",
-      title: "High Bounce Rate Alert",
-      content: "Your landing page bounce rate has increased to 73% over the past week, significantly above the industry average of 47%. This suggests a mismatch between ad content and landing page experience.",
-      impact: "24% decrease in conversion rate",
-      action: "Review landing page",
-      platform: "Google Analytics",
-      confidence: 88
-    },
-    {
-      id: "3",
-      type: "insight",
-      priority: "medium", 
-      title: "Audience Segment Performance Variance",
-      content: "The 25-34 age demographic shows 2.3x higher engagement rates but 18% lower conversion rates compared to the 35-44 segment. Consider creating age-specific landing pages or adjusting targeting parameters.",
-      impact: "15-20% improvement in targeting efficiency",
-      action: "Refine audience targeting",
-      platform: "Meta Ads",
-      confidence: 79
-    },
-    {
-      id: "4",
-      type: "opportunity",
-      priority: "medium",
-      title: "Keyword Expansion Opportunity",
-      content: "Search Console data reveals 47 high-impression, low-click keywords with strong relevance to your business. These represent untapped traffic opportunities with estimated CTR improvement potential.",
-      impact: "12-18% increase in organic traffic",
-      action: "Expand keyword targeting",
-      platform: "Google Search Console", 
-      confidence: 85
-    },
-    {
-      id: "5",
-      type: "insight",
-      priority: "low",
-      title: "Seasonal Performance Pattern Detected", 
-      content: "Historical data analysis reveals a consistent 28% performance boost during the first two weeks of each month. This pattern correlates with payroll cycles and suggests budget timing optimization opportunities.",
-      impact: "8-12% budget efficiency improvement",
-      action: "Adjust budget allocation timing",
-      platform: "Cross-Platform",
-      confidence: 71
-    }
-  ];
 
   const getInsightIcon = (type: string) => {
     switch (type) {
@@ -153,7 +121,14 @@ export default function AIInsights({ workspaceId }: AIInsightsProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-400">Total Insights</p>
-                    <p className="text-2xl font-bold text-white">{insights.length}</p>
+                    {insightsLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                        <span className="text-sm text-slate-400">Loading...</span>
+                      </div>
+                    ) : (
+                      <p className="text-2xl font-bold text-white">{insights?.length || 0}</p>
+                    )}
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
                     <Brain className="text-white w-6 h-6" />
@@ -167,9 +142,16 @@ export default function AIInsights({ workspaceId }: AIInsightsProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-400">High Priority</p>
-                    <p className="text-2xl font-bold text-red-400">
-                      {insights.filter(i => i.priority === 'high').length}
-                    </p>
+                    {insightsLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                        <span className="text-sm text-slate-400">Loading...</span>
+                      </div>
+                    ) : (
+                      <p className="text-2xl font-bold text-red-400">
+                        {insights?.filter((i: any) => i.priority === 'high').length || 0}
+                      </p>
+                    )}
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center">
                     <AlertTriangle className="text-white w-6 h-6" />
@@ -182,10 +164,23 @@ export default function AIInsights({ workspaceId }: AIInsightsProps) {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-400">Avg. Confidence</p>
-                    <p className="text-2xl font-bold text-green-400">
-                      {Math.round(insights.reduce((sum, i) => sum + i.confidence, 0) / insights.length)}%
-                    </p>
+                    <p className="text-sm text-slate-400">Recent Insights</p>
+                    {insightsLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                        <span className="text-sm text-slate-400">Loading...</span>
+                      </div>
+                    ) : (
+                      <p className="text-2xl font-bold text-green-400">
+                        {insights?.filter((i: any) => {
+                          const date = new Date(i.createdAt);
+                          const today = new Date();
+                          const diffTime = Math.abs(today.getTime() - date.getTime());
+                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                          return diffDays <= 7;
+                        }).length || 0}
+                      </p>
+                    )}
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
                     <BarChart3 className="text-white w-6 h-6" />
@@ -196,46 +191,72 @@ export default function AIInsights({ workspaceId }: AIInsightsProps) {
           </div>
 
           {/* Insights List */}
-          <div className="space-y-6">
-            {insights.map((insight) => (
-              <Card key={insight.id} className="glass-card hover:border-primary-500/30 transition-all duration-200">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      {getInsightIcon(insight.type)}
-                      <div>
-                        <CardTitle className="text-lg font-semibold text-white">{insight.title}</CardTitle>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <Badge className={getPriorityColor(insight.priority)}>
-                            {insight.priority.toUpperCase()} PRIORITY
-                          </Badge>
-                          <Badge variant="outline">{insight.platform}</Badge>
-                          <span className="text-xs text-slate-400">Confidence: {insight.confidence}%</span>
+          {insightsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex items-center space-x-3">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <span className="text-slate-400">Loading AI insights...</span>
+              </div>
+            </div>
+          ) : insights && insights.length > 0 ? (
+            <div className="space-y-6">
+              {insights.map((insight: any) => (
+                <Card key={insight.id} className="glass-card hover:border-primary-500/30 transition-all duration-200">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        {getInsightIcon(insight.type)}
+                        <div>
+                          <CardTitle className="text-lg font-semibold text-white">{insight.title}</CardTitle>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <Badge className={getPriorityColor(insight.priority)}>
+                              {(insight.priority || 'medium').toUpperCase()} PRIORITY
+                            </Badge>
+                            <Badge variant="outline">{insight.platform || 'Cross-Platform'}</Badge>
+                            {insight.confidence && (
+                              <span className="text-xs text-slate-400">Confidence: {insight.confidence}%</span>
+                            )}
+                          </div>
                         </div>
                       </div>
+                      <Button variant="outline" size="sm">
+                        Take Action
+                      </Button>
                     </div>
-                    <Button variant="outline" size="sm">
-                      Take Action
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-300 mb-4 leading-relaxed">{insight.content}</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg bg-surface-light border border-surface-border">
-                    <div>
-                      <p className="text-xs text-slate-400 mb-1">Potential Impact</p>
-                      <p className="text-sm font-medium text-green-400">{insight.impact}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 mb-1">Recommended Action</p>
-                      <p className="text-sm font-medium text-white">{insight.action}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-slate-300 mb-4 leading-relaxed">{insight.content}</p>
+                    
+                    {(insight.impact || insight.action) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg bg-surface-light border border-surface-border">
+                        {insight.impact && (
+                          <div>
+                            <p className="text-xs text-slate-400 mb-1">Potential Impact</p>
+                            <p className="text-sm font-medium text-green-400">{insight.impact}</p>
+                          </div>
+                        )}
+                        {insight.action && (
+                          <div>
+                            <p className="text-xs text-slate-400 mb-1">Recommended Action</p>
+                            <p className="text-sm font-medium text-white">{insight.action}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Brain className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-white mb-2">No AI Insights Available</h3>
+              <p className="text-slate-400 mb-4">Connect your platforms and generate insights to see AI-powered recommendations.</p>
+              <Button variant="outline" onClick={() => window.location.href = '/connections'}>
+                Connect Platforms
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
