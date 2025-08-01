@@ -5,8 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
-import Auth from "@/pages/auth";
-import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import Connections from "@/pages/connections";
 import Settings from "@/pages/settings";
@@ -30,15 +28,11 @@ function Router() {
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
-          <Route path="/auth" component={Auth} />
-          <Route path="/login" component={Auth} />
-          <Route path="/register" component={Auth} />
-          <Route component={Landing} />
+          <Route path="/connections" component={Landing} />
         </>
       ) : (
         <>
-          <Route path="/" component={Home} />
-          <Route path="/dashboard" component={Dashboard} />
+          <Route path="/" component={Dashboard} />
           <Route path="/connections" component={Connections} />
           <Route path="/campaigns">
             {(params) => <Campaigns workspaceId="a3705cc8-cbfd-4758-8402-4d6b8657860e" />}
@@ -49,7 +43,6 @@ function Router() {
           <Route path="/settings">
             {(params) => <Settings workspaceId="a3705cc8-cbfd-4758-8402-4d6b8657860e" />}
           </Route>
-          <Route component={Home} />
         </>
       )}
       <Route component={NotFound} />
@@ -61,8 +54,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Router />
         <Toaster />
+        <Router />
       </TooltipProvider>
     </QueryClientProvider>
   );

@@ -115,7 +115,7 @@ export default function Campaigns({ workspaceId }: CampaignsProps) {
                         <span className="text-sm text-slate-400">Loading...</span>
                       </div>
                     ) : (
-                      <p className="text-2xl font-bold text-white">{Array.isArray(campaigns) ? campaigns.length : 0}</p>
+                      <p className="text-2xl font-bold text-white">{campaigns?.length || 0}</p>
                     )}
                   </div>
                   <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
@@ -137,7 +137,7 @@ export default function Campaigns({ workspaceId }: CampaignsProps) {
                       </div>
                     ) : (
                       <p className="text-2xl font-bold text-white">
-                        ${((metrics as any)?.totalSpend || 0).toLocaleString()}
+                        ${(metrics?.totalSpend || 0).toLocaleString()}
                       </p>
                     )}
                   </div>
@@ -160,7 +160,7 @@ export default function Campaigns({ workspaceId }: CampaignsProps) {
                       </div>
                     ) : (
                       <p className="text-2xl font-bold text-white">
-                        {((metrics as any)?.totalImpressions || 0).toLocaleString()}
+                        {(metrics?.totalImpressions || 0).toLocaleString()}
                       </p>
                     )}
                   </div>
@@ -183,7 +183,7 @@ export default function Campaigns({ workspaceId }: CampaignsProps) {
                       </div>
                     ) : (
                       <p className="text-2xl font-bold text-white">
-                        {((metrics as any)?.avgRoas || 0).toFixed(1)}x
+                        {(metrics?.avgRoas || 0).toFixed(1)}x
                       </p>
                     )}
                   </div>
@@ -211,7 +211,7 @@ export default function Campaigns({ workspaceId }: CampaignsProps) {
                     <span className="text-slate-400">Loading campaign data...</span>
                   </div>
                 </div>
-              ) : Array.isArray(campaigns) && campaigns.length > 0 ? (
+              ) : campaigns && campaigns.length > 0 ? (
                 <div className="space-y-4">
                   {campaigns.map((campaign: any, index: number) => (
                     <div key={campaign.id || index} className="p-6 rounded-lg bg-surface-light border border-surface-border hover:border-primary-500/30 transition-all duration-200">

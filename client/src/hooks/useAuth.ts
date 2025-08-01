@@ -1,81 +1,14 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient, getQueryFn } from "../lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-
-type User = {
-  id: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  profileImage?: string;
-};
+import { useQuery } from "@tanstack/react-query";
 
 export function useAuth() {
-  const { toast } = useToast();
-  
-  const { data: user, error, isLoading } = useQuery<User | undefined, Error>({
+  const { data: user, isLoading } = useQuery({
     queryKey: ["/api/auth/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchInterval: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  const loginMutation = useMutation({
-    mutationFn: async (credentials: { email: string; password: string }) => {
-      const res = await apiRequest("POST", "/api/auth/login", credentials);
-      return await res.json();
-    },
-    onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/auth/user"], user);
-      toast({ title: "Welcome back!" });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Login failed", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const registerMutation = useMutation({
-    mutationFn: async (credentials: { email: string; password: string; firstName: string; lastName: string }) => {
-      const res = await apiRequest("POST", "/api/auth/register", credentials);
-      return await res.json();
-    },
-    onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/auth/user"], user);
-      toast({ title: "Account created!" });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Registration failed", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", "/api/auth/logout");
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], null);
-      queryClient.clear();
-      toast({ title: "Signed out" });
-      // Force navigation to landing page after logout
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 100);
-    },
-    onError: (error: Error) => {
-      toast({ title: "Logout failed", description: error.message, variant: "destructive" });
-    },
   });
 
   return {
-    user: user ?? null,
+    user,
     isLoading,
-    error,
     isAuthenticated: !!user,
-    loginMutation,
-    logoutMutation,
-    registerMutation,
   };
 }
