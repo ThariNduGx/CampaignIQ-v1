@@ -149,7 +149,7 @@ export default function EnhancedCharts({ data, metricsSummary, className }: Enha
         return (
           <ResponsiveContainer width="100%" height={400}>
             <RadialBarChart cx="50%" cy="50%" innerRadius="10%" outerRadius="80%" data={devicePerformance}>
-              <RadialBar minAngle={15} label={{ position: 'insideStart', fill: '#fff' }} background clockWise dataKey="impressions" />
+              <RadialBar label={{ position: 'insideStart', fill: '#fff' }} background clockWise dataKey="impressions" />
               <Legend iconSize={10} layout="vertical" verticalAlign="middle" align="right" />
               <Tooltip 
                 contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}

@@ -77,7 +77,7 @@ export default function RealTimeInsights({ workspaceId, className }: RealTimeIns
     ]
   };
 
-  const data = realTimeData || sampleData;
+  const data = (realTimeData as any) || sampleData;
 
   const getAlertIcon = (type: string) => {
     switch (type) {
