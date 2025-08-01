@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { createUser, authenticateUser, requireAuth, getCurrentUser, type SignUpData, type SignInData } from "./auth";
-import { isAuthenticated } from "./replitAuth";
+
 import { insertWorkspaceSchema, insertUserSettingsSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -199,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle OAuth errors
       if (error) {
         console.error(`Google OAuth callback error: ${error} - ${error_description}`);
-        return res.redirect(`/?connection=error&error=${encodeURIComponent(error)}`);
+        return res.redirect(`/?connection=error&error=${encodeURIComponent(error as string)}`);
       }
       
       if (!code || !state) {
@@ -226,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.redirect(`/?connection=success&platform=google`);
     } catch (error) {
       console.error("Error handling Google OAuth callback:", error);
-      res.redirect(`/?connection=error&message=${encodeURIComponent(error.message || 'OAuth callback failed')}`);
+      res.redirect(`/?connection=error&message=${encodeURIComponent((error as any).message || 'OAuth callback failed')}`);
     }
   });
 
@@ -234,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/workspaces/:workspaceId/connections/:platform', requireAuth, async (req, res) => {
     try {
       const { workspaceId, platform } = req.params;
-      const userId = req.user.id;
+      const userId = (req as any).user?.id;
       
       if (!userId) {
         return res.status(401).json({ message: 'Unauthorized' });
@@ -603,7 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get available Google Analytics properties
-  app.get('/api/google/analytics/:workspaceId/properties', isAuthenticated, async (req, res) => {
+  app.get('/api/google/analytics/:workspaceId/properties', requireAuth, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
       const userId = (req.user as any)?.claims?.sub;
@@ -657,7 +657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get available Google Search Console sites
-  app.get('/api/google/search-console/:workspaceId/sites', isAuthenticated, async (req, res) => {
+  app.get('/api/google/search-console/:workspaceId/sites', requireAuth, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
       const userId = (req.user as any)?.claims?.sub;
@@ -780,7 +780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Google Analytics data endpoint
-  app.get('/api/google/analytics/:workspaceId', isAuthenticated, async (req, res) => {
+  app.get('/api/google/analytics/:workspaceId', requireAuth, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
       const userId = (req.user as any)?.claims?.sub;
@@ -833,7 +833,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Google Search Console data endpoint
-  app.get('/api/google/search-console/:workspaceId', isAuthenticated, async (req, res) => {
+  app.get('/api/google/search-console/:workspaceId', requireAuth, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
       const userId = (req.user as any)?.claims?.sub;
