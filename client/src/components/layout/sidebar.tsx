@@ -74,10 +74,10 @@ export default function Sidebar({ workspaces, selectedWorkspace, onWorkspaceChan
           <Link href="/">
             <Button
               variant="ghost"
-              className={`w-full justify-start space-x-3 ${
+              className={`w-full justify-start space-x-3 transition-all duration-200 ${
                 location === '/' 
                   ? 'bg-primary-600/20 text-primary-300 border border-primary-500/30' 
-                  : 'text-slate-300 hover:bg-surface-light hover:text-white'
+                  : 'text-slate-300 hover:bg-gradient-to-r hover:from-green-500/20 hover:to-blue-500/20 hover:text-white hover:border-l-4 hover:border-l-green-500'
               }`}
             >
               <ChartPie className="w-5 h-5" />
@@ -85,29 +85,41 @@ export default function Sidebar({ workspaces, selectedWorkspace, onWorkspaceChan
             </Button>
           </Link>
           
-          <Button
-            variant="ghost"
-            className="w-full justify-start space-x-3 text-slate-300 hover:bg-surface-light hover:text-white"
-          >
-            <Target className="w-5 h-5" />
-            <span className="font-medium">Campaigns</span>
-          </Button>
+          <Link href="/campaigns">
+            <Button
+              variant="ghost"
+              className={`w-full justify-start space-x-3 transition-all duration-200 ${
+                location === '/campaigns' 
+                  ? 'bg-primary-600/20 text-primary-300 border border-primary-500/30' 
+                  : 'text-slate-300 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-pink-500/20 hover:text-white hover:border-l-4 hover:border-l-purple-500'
+              }`}
+            >
+              <Target className="w-5 h-5" />
+              <span className="font-medium">Campaigns</span>
+            </Button>
+          </Link>
           
-          <Button
-            variant="ghost"
-            className="w-full justify-start space-x-3 text-slate-300 hover:bg-surface-light hover:text-white"
-          >
-            <Brain className="w-5 h-5" />
-            <span className="font-medium">AI Insights</span>
-          </Button>
+          <Link href="/ai-insights">
+            <Button
+              variant="ghost"
+              className={`w-full justify-start space-x-3 transition-all duration-200 ${
+                location === '/ai-insights' 
+                  ? 'bg-primary-600/20 text-primary-300 border border-primary-500/30'
+                  : 'text-slate-300 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-cyan-500/20 hover:text-white hover:border-l-4 hover:border-l-blue-500'
+              }`}
+            >
+              <Brain className="w-5 h-5" />
+              <span className="font-medium">AI Insights</span>
+            </Button>
+          </Link>
           
           <Link href="/connections">
             <Button
               variant="ghost"
-              className={`w-full justify-start space-x-3 ${
+              className={`w-full justify-start space-x-3 transition-all duration-200 ${
                 location === '/connections' 
                   ? 'bg-primary-600/20 text-primary-300 border border-primary-500/30' 
-                  : 'text-slate-300 hover:bg-surface-light hover:text-white'
+                  : 'text-slate-300 hover:bg-gradient-to-r hover:from-orange-500/20 hover:to-red-500/20 hover:text-white hover:border-l-4 hover:border-l-orange-500'
               }`}
             >
               <LinkIcon className="w-5 h-5" />
@@ -118,10 +130,10 @@ export default function Sidebar({ workspaces, selectedWorkspace, onWorkspaceChan
           <Link href="/settings">
             <Button
               variant="ghost"
-              className={`w-full justify-start space-x-3 ${
+              className={`w-full justify-start space-x-3 transition-all duration-200 ${
                 location === '/settings' 
                   ? 'bg-primary-600/20 text-primary-300 border border-primary-500/30' 
-                  : 'text-slate-300 hover:bg-surface-light hover:text-white'
+                  : 'text-slate-300 hover:bg-gradient-to-r hover:from-gray-500/20 hover:to-slate-500/20 hover:text-white hover:border-l-4 hover:border-l-gray-500'
               }`}
             >
               <Settings className="w-5 h-5" />

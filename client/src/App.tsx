@@ -8,6 +8,8 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Connections from "@/pages/connections";
 import Settings from "@/pages/settings";
+import Campaigns from "@/pages/campaigns";
+import AIInsights from "@/pages/ai-insights";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -32,6 +34,12 @@ function Router() {
         <>
           <Route path="/" component={Dashboard} />
           <Route path="/connections" component={Connections} />
+          <Route path="/campaigns">
+            {(params) => <Campaigns workspaceId="a3705cc8-cbfd-4758-8402-4d6b8657860e" />}
+          </Route>
+          <Route path="/ai-insights">
+            {(params) => <AIInsights workspaceId="a3705cc8-cbfd-4758-8402-4d6b8657860e" />}
+          </Route>
           <Route path="/settings">
             {(params) => <Settings workspaceId="a3705cc8-cbfd-4758-8402-4d6b8657860e" />}
           </Route>
