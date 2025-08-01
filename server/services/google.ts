@@ -101,16 +101,21 @@ export class GoogleApiService {
       const analytics = google.analyticsadmin({ version: 'v1beta', auth: this.oauth2Client });
       const response = await analytics.accountSummaries.list();
       
+      console.log('Raw Google Analytics account summaries response:', JSON.stringify(response.data, null, 2));
+      
       const properties: string[] = [];
       response.data.accountSummaries?.forEach(account => {
+        console.log('Processing account:', account.displayName, 'with', account.propertySummaries?.length || 0, 'properties');
         account.propertySummaries?.forEach(property => {
           const propertyId = property.property?.split('/')[1];
+          console.log('Found property:', property.displayName, 'with ID:', propertyId);
           if (propertyId) {
             properties.push(propertyId);
           }
         });
       });
       
+      console.log('Final extracted properties:', properties);
       return properties;
     } catch (error) {
       console.error('Error fetching user properties:', error);
@@ -211,7 +216,13 @@ export class GoogleApiService {
       
       const searchconsole = google.searchconsole({ version: 'v1', auth: this.oauth2Client });
       const response = await searchconsole.sites.list();
-      return response.data.siteEntry?.map(site => site.siteUrl || '').filter(Boolean) || [];
+      
+      console.log('Raw Google Search Console sites response:', JSON.stringify(response.data, null, 2));
+      
+      const sites = response.data.siteEntry?.map(site => site.siteUrl || '').filter(Boolean) || [];
+      console.log('Final extracted sites:', sites);
+      
+      return sites;
     } catch (error) {
       console.error('Error fetching user sites:', error);
       return [];
