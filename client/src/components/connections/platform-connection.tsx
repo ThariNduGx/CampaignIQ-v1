@@ -1,9 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertCircle, ExternalLink } from "lucide-react";
+import { CheckCircle, AlertCircle, ExternalLink, Unplug } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
@@ -63,6 +63,39 @@ export default function PlatformConnection({
     },
   });
 
+  const disconnectMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest(`/api/workspaces/${workspaceId}/connections/${platform}`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({
+        title: "Disconnected",
+        description: `${platformName} connection removed successfully`,
+      });
+      // Invalidate connections cache
+      queryClient.invalidateQueries({ queryKey: ['/api/workspaces', workspaceId, 'connections'] });
+      onConnectionUpdate();
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: `Failed to disconnect ${platformName}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <Card className="glass-card border-primary/20 hover:border-primary/40 transition-all duration-300">
       <CardContent className="p-6">
@@ -109,13 +142,34 @@ export default function PlatformConnection({
                   <CheckCircle className="w-4 h-4 mr-2" />
                   Connected
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-slate-400 hover:text-white"
-                >
-                  Reconnect
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => connectMutation.mutate()}
+                    disabled={connectMutation.isPending}
+                    className="text-slate-400 hover:text-white flex-1"
+                  >
+                    {connectMutation.isPending && (
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                    )}
+                    Reconnect
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => disconnectMutation.mutate()}
+                    disabled={disconnectMutation.isPending}
+                    className="text-slate-400 hover:text-red-400 px-2"
+                    title="Disconnect"
+                  >
+                    {disconnectMutation.isPending ? (
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-400"></div>
+                    ) : (
+                      <Unplug className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
               </>
             ) : (
               <Button
