@@ -378,12 +378,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileExtension = 'html';
       }
       
-      // For now, return the content directly
-      // In a production environment, you would save to a file service and return a download URL
+      // Set proper headers for file download
       const filename = `campaigniq-${reportType}-${startDate}-to-${endDate}.${fileExtension}`;
       
       res.setHeader('Content-Type', mimeType);
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', Buffer.byteLength(content, 'utf8'));
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+      
       res.send(content);
       
     } catch (error) {

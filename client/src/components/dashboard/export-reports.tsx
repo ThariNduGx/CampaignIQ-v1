@@ -31,41 +31,33 @@ export default function ExportReports({ workspaceId }: ExportReportsProps) {
       startDate: string;
       endDate: string;
     }) => {
-      // For now, trigger direct download by making a request that returns the file
-      const queryParams = new URLSearchParams({
-        reportType: params.reportType,
-        format: params.format,
-        startDate: params.startDate,
-        endDate: params.endDate
-      });
+      // Use the apiRequest function to handle authentication properly
+      const response = await apiRequest("POST", `/api/workspaces/${workspaceId}/export`, params);
       
-      const response = await fetch(`/api/workspaces/${workspaceId}/export?${queryParams}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(params)
-      });
+      // Get the text content from the response
+      const content = await response.text();
       
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const filename = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || 
-                          `campaigniq-${params.reportType}-${params.startDate}-to-${params.endDate}.${params.format}`;
-        
-        // Create download link
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
+      // Create blob with proper content type
+      const contentType = params.format === 'csv' ? 'text/csv' : 'text/html';
+      const blob = new Blob([content], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+      const filename = `campaigniq-${params.reportType}-${params.startDate}-to-${params.endDate}.${params.format}`;
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      setTimeout(() => {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-        
-        return { success: true };
-      } else {
-        throw new Error('Export failed');
-      }
+      }, 100);
+      
+      return { success: true, filename };
     },
     onSuccess: () => {
       toast({
