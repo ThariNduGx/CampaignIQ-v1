@@ -29,7 +29,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/workspaces', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const workspaces = await storage.getUserWorkspaces(userId);
+      let workspaces = await storage.getUserWorkspaces(userId);
+      
+      // Create default workspace if user has none
+      if (workspaces.length === 0) {
+        const defaultWorkspace = await storage.createWorkspace({
+          name: "My Marketing Campaigns",
+          description: "Default workspace for marketing analytics",
+          userId: userId
+        });
+        workspaces = [defaultWorkspace];
+      }
+      
       res.json(workspaces);
     } catch (error) {
       console.error("Error fetching workspaces:", error);
@@ -94,21 +105,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // OAuth callback route
+  // OAuth callback route - Updated to handle Google's callback format
   app.get('/api/oauth/callback', async (req, res) => {
     try {
-      const { code, state, platform } = req.query;
+      const { code, state } = req.query;
       
-      if (!code || !state || !platform) {
+      if (!code || !state) {
         return res.status(400).json({ message: "Missing required parameters" });
       }
 
-      const tokens = await exchangeCodeForTokens(platform as string, code as string);
+      // Determine platform from the referrer or assume Google for now
+      const platform = 'google'; // Since we're implementing Google first
+      
+      const tokens = await exchangeCodeForTokens(platform, code as string);
       
       // Store the connection in database
       const connection = await storage.createPlatformConnection({
         workspaceId: state as string,
-        platform: platform as string,
+        platform: platform,
         accountId: tokens.accountId,
         accountName: tokens.accountName,
         accessToken: tokens.accessToken,
