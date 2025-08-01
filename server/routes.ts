@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { createUser, authenticateUser, requireAuth, getCurrentUser, type SignUpData, type SignInData } from "./auth";
+import { isAuthenticated } from "./replitAuth";
 import { insertWorkspaceSchema, insertUserSettingsSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -602,7 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get available Google Analytics properties
-  app.get('/api/google/analytics/:workspaceId/properties', requireAuth, getCurrentUser, async (req, res) => {
+  app.get('/api/google/analytics/:workspaceId/properties', isAuthenticated, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
       const userId = (req.user as any)?.claims?.sub;
@@ -656,7 +657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get available Google Search Console sites
-  app.get('/api/google/search-console/:workspaceId/sites', requireAuth, getCurrentUser, async (req, res) => {
+  app.get('/api/google/search-console/:workspaceId/sites', isAuthenticated, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
       const userId = (req.user as any)?.claims?.sub;
@@ -779,7 +780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Google Analytics data endpoint
-  app.get('/api/google/analytics/:workspaceId', requireAuth, getCurrentUser, async (req, res) => {
+  app.get('/api/google/analytics/:workspaceId', isAuthenticated, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
       const userId = (req.user as any)?.claims?.sub;
@@ -832,7 +833,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Google Search Console data endpoint
-  app.get('/api/google/search-console/:workspaceId', requireAuth, getCurrentUser, async (req, res) => {
+  app.get('/api/google/search-console/:workspaceId', isAuthenticated, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
       const userId = (req.user as any)?.claims?.sub;

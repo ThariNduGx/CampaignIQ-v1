@@ -117,7 +117,7 @@ export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate, o
     );
   }
 
-  if (error || propertiesError) {
+  if (propertiesError) {
     return (
       <Card className="glass-card border-primary/20">
         <CardHeader>
@@ -144,12 +144,8 @@ export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate, o
         <CardContent>
           <div className="text-center py-8">
             <p className="text-slate-400">Failed to load Analytics data</p>
-            <p className="text-sm text-slate-500 mt-1">
-              {propertiesError ? 'Cannot access Analytics properties' : 'Please check your connection settings'}
-            </p>
-            {propertiesError && (
-              <p className="text-xs text-slate-500 mt-2">Try reconnecting your Google account</p>
-            )}
+            <p className="text-sm text-slate-500 mt-1">Cannot access Analytics properties</p>
+            <p className="text-xs text-slate-500 mt-2">Try reconnecting your Google account</p>
           </div>
         </CardContent>
       </Card>

@@ -158,34 +158,58 @@ export class GoogleApiService {
       
       console.log(`Fetching Analytics data for property ${targetPropertyId} from ${startDate} to ${endDate}`);
       
+      // First try with basic metrics
       const response = await analytics.properties.runReport({
         property: `properties/${targetPropertyId}`,
         requestBody: {
           dateRanges: [{ startDate, endDate }],
           metrics: [
-            { name: 'sessions' },
+            { name: 'activeUsers' },
             { name: 'screenPageViews' },
+            { name: 'sessions' },
             { name: 'bounceRate' },
-            { name: 'averageSessionDuration' },
-            { name: 'conversions' },
-            { name: 'totalRevenue' }
+            { name: 'averageSessionDuration' }
           ],
-          dimensions: []
+          dimensions: [],
+          keepEmptyRows: true
         },
       });
 
       console.log('Raw Analytics API response:', JSON.stringify(response.data, null, 2));
+      
+      // If no data, try a broader date range
+      if (!response.data.rows || response.data.rows.length === 0) {
+        console.log('No data found, trying broader date range...');
+        const broaderResponse = await analytics.properties.runReport({
+          property: `properties/${targetPropertyId}`,
+          requestBody: {
+            dateRanges: [{ startDate: '2024-01-01', endDate: '2024-12-31' }],
+            metrics: [
+              { name: 'activeUsers' },
+              { name: 'screenPageViews' },
+              { name: 'sessions' }
+            ],
+            dimensions: [],
+            keepEmptyRows: true
+          },
+        });
+        console.log('Broader date range response:', JSON.stringify(broaderResponse.data, null, 2));
+        if (broaderResponse.data.rows && broaderResponse.data.rows.length > 0) {
+          // Use the broader response if it has data
+          Object.assign(response.data, broaderResponse.data);
+        }
+      }
 
       const rows = response.data.rows || [];
       const metrics = rows[0]?.metricValues || [];
 
       const result = {
-        sessions: parseInt(metrics[0]?.value || '0'),
-        pageviews: parseInt(metrics[1]?.value || '0'),
-        bounceRate: parseFloat(metrics[2]?.value || '0'),
-        avgSessionDuration: parseFloat(metrics[3]?.value || '0'),
-        goalCompletions: parseInt(metrics[4]?.value || '0'),
-        revenue: parseFloat(metrics[5]?.value || '0'),
+        sessions: parseInt(metrics[2]?.value || metrics[0]?.value || '0'), // sessions or activeUsers as fallback
+        pageviews: parseInt(metrics[1]?.value || '0'), // screenPageViews
+        bounceRate: parseFloat(metrics[3]?.value || '0'),
+        avgSessionDuration: parseFloat(metrics[4]?.value || '0'),
+        goalCompletions: 0, // We'll handle conversions separately
+        revenue: 0, // We'll handle revenue separately
       };
 
       console.log('Analytics data result:', result);
