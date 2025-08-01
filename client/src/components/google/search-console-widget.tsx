@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Search, MousePointer, TrendingUp, Hash, Settings } from "lucide-react";
+import { Search, MousePointer, TrendingUp, Hash, Settings, Unplug } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface SearchConsoleWidgetProps {
   workspaceId: string;
@@ -15,6 +17,29 @@ interface SearchConsoleWidgetProps {
 
 export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate }: SearchConsoleWidgetProps) {
   const [selectedSite, setSelectedSite] = useState<string>(siteUrl || "");
+  const { toast } = useToast();
+
+  // Disconnect mutation
+  const disconnectMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest(`/api/workspaces/${workspaceId}/connections/google`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({
+        title: "Disconnected",
+        description: "Google Search Console connection removed successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/google/search-console'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/workspaces', workspaceId, 'connections'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to disconnect Google Search Console",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Fetch available sites
   const { data: sites } = useQuery({
@@ -131,6 +156,16 @@ export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate }
                 </SelectContent>
               </Select>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => disconnectMutation.mutate()}
+              disabled={disconnectMutation.isPending}
+              className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+              title="Disconnect Google Search Console"
+            >
+              <Unplug className="h-4 w-4" />
+            </Button>
             <Settings className="h-4 w-4 text-slate-400" />
           </div>
         </CardTitle>

@@ -137,6 +137,16 @@ export class DatabaseStorage implements IStorage {
     return connection;
   }
 
+  async deletePlatformConnection(workspaceId: string, platform: string): Promise<void> {
+    await db
+      .update(platformConnections)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(and(
+        eq(platformConnections.workspaceId, workspaceId),
+        eq(platformConnections.platform, platform)
+      ));
+  }
+
   // Campaign operations
   async getWorkspaceCampaigns(workspaceId: string): Promise<Campaign[]> {
     return await db.select().from(campaigns).where(eq(campaigns.workspaceId, workspaceId)).orderBy(desc(campaigns.createdAt));

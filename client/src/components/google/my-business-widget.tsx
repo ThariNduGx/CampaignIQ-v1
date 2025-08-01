@@ -1,9 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Eye, Phone, Navigation, Globe, Users, Settings } from "lucide-react";
+import { Store, Eye, Phone, Navigation, Globe, Users, Settings, Unplug } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface MyBusinessWidgetProps {
   workspaceId: string;
@@ -16,6 +18,29 @@ interface MyBusinessWidgetProps {
 export function MyBusinessWidget({ workspaceId, accountId, locationId, startDate, endDate }: MyBusinessWidgetProps) {
   const [selectedAccount, setSelectedAccount] = useState<string>(accountId || "");
   const [selectedLocation, setSelectedLocation] = useState<string>(locationId || "");
+  const { toast } = useToast();
+
+  // Disconnect mutation
+  const disconnectMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest(`/api/workspaces/${workspaceId}/connections/google`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({
+        title: "Disconnected",
+        description: "Google My Business connection removed successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/google/my-business'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/workspaces', workspaceId, 'connections'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to disconnect Google My Business",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Fetch available accounts and locations
   const { data: accounts } = useQuery({
@@ -135,6 +160,16 @@ export function MyBusinessWidget({ workspaceId, accountId, locationId, startDate
                 )}
               </>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => disconnectMutation.mutate()}
+              disabled={disconnectMutation.isPending}
+              className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+              title="Disconnect Google My Business"
+            >
+              <Unplug className="h-4 w-4" />
+            </Button>
             <Settings className="h-4 w-4 text-slate-400" />
           </div>
         </CardTitle>

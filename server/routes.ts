@@ -136,6 +136,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Disconnect platform connection
+  app.delete('/api/workspaces/:workspaceId/connections/:platform', isAuthenticated, async (req, res) => {
+    try {
+      const { workspaceId, platform } = req.params;
+      const userId = (req.user as any)?.claims?.sub;
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      await storage.deletePlatformConnection(workspaceId, platform);
+      res.json({ message: `${platform} connection removed successfully` });
+    } catch (error) {
+      console.error("Error disconnecting platform:", error);
+      res.status(500).json({ message: "Failed to disconnect platform" });
+    }
+  });
+
   // Campaign metrics routes
   app.get('/api/workspaces/:workspaceId/metrics/summary', isAuthenticated, async (req, res) => {
     try {

@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { TrendingUp, Users, Eye, MousePointer, DollarSign, Settings } from "lucide-react";
+import { TrendingUp, Users, Eye, MousePointer, DollarSign, Settings, Unplug } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface AnalyticsWidgetProps {
   workspaceId: string;
@@ -15,6 +17,30 @@ interface AnalyticsWidgetProps {
 
 export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate }: AnalyticsWidgetProps) {
   const [selectedProperty, setSelectedProperty] = useState<string>(propertyId || "");
+  const { toast } = useToast();
+
+  // Disconnect mutation
+  const disconnectMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest(`/api/workspaces/${workspaceId}/connections/google`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({
+        title: "Disconnected",
+        description: "Google Analytics connection removed successfully",
+      });
+      // Invalidate all related queries
+      queryClient.invalidateQueries({ queryKey: ['/api/google/analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/workspaces', workspaceId, 'connections'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to disconnect Google Analytics",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Fetch available properties
   const { data: properties } = useQuery({
@@ -131,6 +157,16 @@ export function AnalyticsWidget({ workspaceId, propertyId, startDate, endDate }:
                 </SelectContent>
               </Select>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => disconnectMutation.mutate()}
+              disabled={disconnectMutation.isPending}
+              className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+              title="Disconnect Google Analytics"
+            >
+              <Unplug className="h-4 w-4" />
+            </Button>
             <Settings className="h-4 w-4 text-slate-400" />
           </div>
         </CardTitle>
