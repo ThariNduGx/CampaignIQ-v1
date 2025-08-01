@@ -44,17 +44,7 @@ export default function PlatformConnection({
       window.location.href = data.authUrl;
     },
     onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/auth";
-        }, 500);
-        return;
-      }
+      console.error('Connect error:', error);
       
       let errorMessage = "Failed to initiate connection";
       if (platform === 'meta') {
@@ -83,17 +73,7 @@ export default function PlatformConnection({
       onConnectionUpdate();
     },
     onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Please sign in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/auth";
-        }, 500);
-        return;
-      }
+      console.error('Disconnect error:', error);
       toast({
         title: "Error",
         description: `Failed to disconnect ${platformName}`,
