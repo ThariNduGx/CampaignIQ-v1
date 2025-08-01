@@ -246,7 +246,7 @@ export class DatabaseStorage implements IStorage {
       .onConflictDoUpdate({
         target: userSettings.userId,
         set: {
-          ...settings,
+          openaiApiKey: settings.openaiApiKey,
           updatedAt: new Date(),
         },
       })

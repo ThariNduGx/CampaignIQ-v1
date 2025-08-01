@@ -99,8 +99,7 @@ export const aiInsights = pgTable("ai_insights", {
 });
 
 export const userSettings = pgTable("user_settings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").primaryKey().notNull().references(() => users.id, { onDelete: "cascade" }),
   openaiApiKey: text("openai_api_key"),
   defaultWorkspaceId: varchar("default_workspace_id").references(() => workspaces.id),
   createdAt: timestamp("created_at").defaultNow(),
