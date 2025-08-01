@@ -12,7 +12,6 @@ import AiInsights from "@/components/dashboard/ai-insights";
 import CampaignTable from "@/components/dashboard/campaign-table";
 import { AnalyticsWidget } from "@/components/google/analytics-widget";
 import { SearchConsoleWidget } from "@/components/google/search-console-widget";
-import { MyBusinessWidget } from "@/components/google/my-business-widget";
 import MetaAdsWidget from "@/components/meta/meta-ads-widget";
 
 export default function Dashboard() {
@@ -113,18 +112,13 @@ export default function Dashboard() {
           {/* Marketing Platform Widgets */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-white">Marketing Platform Insights</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               <AnalyticsWidget 
                 workspaceId={selectedWorkspace}
                 startDate={dateRange.startDate}
                 endDate={dateRange.endDate}
               />
               <SearchConsoleWidget 
-                workspaceId={selectedWorkspace}
-                startDate={dateRange.startDate}
-                endDate={dateRange.endDate}
-              />
-              <MyBusinessWidget 
                 workspaceId={selectedWorkspace}
                 startDate={dateRange.startDate}
                 endDate={dateRange.endDate}

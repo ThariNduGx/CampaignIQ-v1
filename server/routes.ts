@@ -335,36 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get available Google My Business accounts
-  app.get('/api/google/my-business/:workspaceId/accounts', isAuthenticated, async (req, res) => {
-    try {
-      const workspaceId = req.params.workspaceId;
-      const userId = (req.user as any)?.claims?.sub;
-      
-      if (!userId) {
-        return res.status(401).json({ message: 'Unauthorized' });
-      }
 
-      const connection = await storage.getConnection(workspaceId, 'google');
-      if (!connection) {
-        return res.status(404).json({ message: 'Google connection not found' });
-      }
-
-      googleApiService.setCredentials({
-        access_token: connection.accessToken,
-        refresh_token: connection.refreshToken || undefined,
-        scope: 'https://www.googleapis.com/auth/business.manage',
-        token_type: 'Bearer',
-        expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
-      });
-
-      const accounts = await googleApiService.getMyBusinessAccounts();
-      res.json(accounts);
-    } catch (error) {
-      console.error('Error fetching Google My Business accounts:', error);
-      res.status(500).json({ message: 'Failed to fetch My Business accounts' });
-    }
-  });
 
   // Google Analytics data endpoint
   app.get('/api/google/analytics/:workspaceId', isAuthenticated, async (req, res) => {
@@ -444,45 +415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Google My Business data endpoint
-  app.get('/api/google/my-business/:workspaceId', isAuthenticated, async (req, res) => {
-    try {
-      const workspaceId = req.params.workspaceId;
-      const userId = (req.user as any)?.claims?.sub;
-      const { accountId, locationId, startDate, endDate } = req.query;
-      
-      if (!userId) {
-        return res.status(401).json({ message: 'Unauthorized' });
-      }
 
-      // Get Google connection for this workspace
-      const connection = await storage.getConnection(workspaceId, 'google');
-      if (!connection) {
-        return res.status(404).json({ message: 'Google connection not found' });
-      }
-
-      // Set credentials and fetch data
-      googleApiService.setCredentials({
-        access_token: connection.accessToken,
-        refresh_token: connection.refreshToken || undefined,
-        scope: 'https://www.googleapis.com/auth/business.manage',
-        token_type: 'Bearer',
-        expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
-      });
-
-      const myBusinessData = await googleApiService.getMyBusinessData(
-        accountId as string || '123',
-        locationId as string || '456',
-        startDate as string || '2024-01-01',
-        endDate as string || '2024-01-31'
-      );
-
-      res.json(myBusinessData);
-    } catch (error) {
-      console.error('Error fetching Google My Business data:', error);
-      res.status(500).json({ message: 'Failed to fetch My Business data' });
-    }
-  });
 
   // Meta (Facebook/Instagram) API routes
   app.get('/api/meta/:workspaceId/accounts', isAuthenticated, async (req, res) => {
