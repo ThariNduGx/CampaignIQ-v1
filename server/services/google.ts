@@ -168,7 +168,7 @@ export class GoogleApiService {
       let targetSiteUrl = siteUrl;
       
       // If no specific site provided, get the first available one
-      if (!targetSiteUrl || targetSiteUrl.includes('-')) {
+      if (!targetSiteUrl) {
         const sites = await this.getUserSites();
         if (sites.length === 0) {
           return {

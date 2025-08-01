@@ -19,6 +19,25 @@ export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate }
   const [selectedSite, setSelectedSite] = useState<string>(siteUrl || "");
   const { toast } = useToast();
 
+  // Auto-select first site if none selected
+  const { data: sites } = useQuery({
+    queryKey: ['/api/google/search-console/sites', workspaceId],
+    queryFn: async () => {
+      const response = await fetch(`/api/google/search-console/${workspaceId}/sites`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch sites');
+      return response.json();
+    },
+    enabled: !!workspaceId,
+    onSuccess: (sitesData) => {
+      // Auto-select first site if none selected
+      if (!selectedSite && sitesData && sitesData.length > 0) {
+        setSelectedSite(sitesData[0]);
+      }
+    }
+  });
+
   // Disconnect mutation
   const disconnectMutation = useMutation({
     mutationFn: async () => {
@@ -41,16 +60,7 @@ export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate }
     },
   });
 
-  // Fetch available sites
-  const { data: sites } = useQuery({
-    queryKey: ['/api/google/search-console/sites', workspaceId],
-    queryFn: async () => {
-      const response = await fetch(`/api/google/search-console/${workspaceId}/sites`);
-      if (!response.ok) throw new Error('Failed to fetch sites');
-      return response.json();
-    },
-    enabled: !!workspaceId,
-  });
+
   const { data: searchData, isLoading, error } = useQuery({
     queryKey: ['/api/google/search-console', workspaceId, selectedSite, startDate, endDate],
     queryFn: async () => {
@@ -59,13 +69,17 @@ export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate }
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
       
-      const response = await fetch(`/api/google/search-console/${workspaceId}?${params}`);
+      const response = await fetch(`/api/google/search-console/${workspaceId}?${params}`, {
+        credentials: 'include'
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch Search Console data');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('Search Console data received for site:', selectedSite, data);
+      return data;
     },
-    enabled: !!workspaceId,
+    enabled: !!workspaceId && !!selectedSite,
   });
 
   if (isLoading) {
