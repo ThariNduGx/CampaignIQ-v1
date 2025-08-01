@@ -55,9 +55,15 @@ export default function PlatformConnection({
         }, 500);
         return;
       }
+      
+      let errorMessage = "Failed to initiate connection";
+      if (platform === 'meta') {
+        errorMessage = "Meta connection setup required. Please ensure your redirect URI is configured in Meta for Developers.";
+      }
+      
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to initiate connection",
+        title: "Connection Error",
+        description: error instanceof Error ? error.message : errorMessage,
         variant: "destructive",
       });
     },
@@ -172,17 +178,30 @@ export default function PlatformConnection({
                 </div>
               </>
             ) : (
-              <Button
-                onClick={() => connectMutation.mutate()}
-                disabled={connectMutation.isPending || !workspaceId}
-                className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
-              >
-                {connectMutation.isPending && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              <div className="text-right">
+                {platform === 'meta' && (
+                  <div className="text-xs text-muted-foreground mb-2 text-right max-w-xs">
+                    <div className="font-mono text-slate-500">
+                      Redirect URI:<br/>
+                      https://4fd03766-586b-4c74-baba-e4fd4970b110-00-3128ajre72gcp.riker.replit.dev/api/oauth/callback
+                    </div>
+                    <div className="text-yellow-400 mt-1">
+                      ⚠ Add this URI to your Meta app settings
+                    </div>
+                  </div>
                 )}
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Connect
-              </Button>
+                <Button
+                  onClick={() => connectMutation.mutate()}
+                  disabled={connectMutation.isPending || !workspaceId}
+                  className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
+                >
+                  {connectMutation.isPending && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  )}
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Connect
+                </Button>
+              </div>
             )}
           </div>
         </div>

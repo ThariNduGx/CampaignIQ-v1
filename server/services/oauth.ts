@@ -9,6 +9,8 @@ export function generateOAuthUrl(platform: string, workspaceId: string): string 
     redirectUri = `http://localhost:5000/api/oauth/callback`;
   }
   
+  console.log(`Generated ${platform} OAuth URL with redirect URI: ${redirectUri}`);
+  
   if (platform === 'google') {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const scopes = [
@@ -68,6 +70,8 @@ export async function exchangeCodeForTokens(platform: string, code: string): Pro
     // Fallback for development
     redirectUri = `http://localhost:5000/api/oauth/callback`;
   }
+  
+  console.log(`Exchanging ${platform} code with redirect URI: ${redirectUri}`);
   
   if (platform === 'google') {
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
