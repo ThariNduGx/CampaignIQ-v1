@@ -1,7 +1,16 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Calendar, Bell, Menu } from "lucide-react";
+import { Calendar, Bell, Menu, LogOut, User, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface TopBarProps {
   dateRange?: {
@@ -13,6 +22,25 @@ interface TopBarProps {
 
 export default function TopBar({ dateRange, onDateRangeChange }: TopBarProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await apiRequest('POST', '/api/auth/signout');
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out",
+      });
+      // Redirect to home page
+      window.location.href = "/";
+    } catch (error) {
+      toast({
+        title: "Sign out failed",
+        description: "There was an error signing out",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <header className="bg-surface/80 backdrop-blur-lg border-b border-primary-900/20 sticky top-0 z-30">
@@ -48,19 +76,37 @@ export default function TopBar({ dateRange, onDateRangeChange }: TopBarProps) {
           </Button>
           
           {/* User Menu */}
-          <Card className="glass-card px-3 py-2 flex items-center space-x-3">
-            <img 
-              src={(user as any)?.profileImageUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"} 
-              alt="User profile" 
-              className="w-8 h-8 rounded-full object-cover" 
-            />
-            <span className="text-sm font-medium">
-              {(user as any)?.firstName && (user as any)?.lastName 
-                ? `${(user as any).firstName} ${(user as any).lastName}` 
-                : (user as any)?.email?.split('@')[0] || 'User'}
-            </span>
-            <i className="fas fa-chevron-down text-slate-400 text-xs"></i>
-          </Card>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Card className="glass-card px-3 py-2 flex items-center space-x-3 cursor-pointer hover:bg-slate-800/30 transition-colors">
+                <img 
+                  src={(user as any)?.profileImageUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"} 
+                  alt="User profile" 
+                  className="w-8 h-8 rounded-full object-cover" 
+                />
+                <span className="text-sm font-medium">
+                  {(user as any)?.firstName && (user as any)?.lastName 
+                    ? `${(user as any).firstName} ${(user as any).lastName}` 
+                    : (user as any)?.email?.split('@')[0] || 'User'}
+                </span>
+                <ChevronDown className="w-4 h-4 text-slate-400" />
+              </Card>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 glass-card border-primary/20">
+              <DropdownMenuItem className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-slate-700" />
+              <DropdownMenuItem 
+                className="cursor-pointer text-red-400 focus:text-red-400 focus:bg-red-400/10"
+                onClick={handleSignOut}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sign out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
