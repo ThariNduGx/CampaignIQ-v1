@@ -85,10 +85,10 @@ export async function generateReportData(
         platforms.google.searchConsole = searchConsoleData;
       }
       
-      totalConversions += analyticsData.goalCompletions || 0;
-      totalRevenue += analyticsData.revenue || 0;
-      totalClicks += searchConsoleData.clicks || 0;
-      totalImpressions += searchConsoleData.impressions || 0;
+      totalConversions += analyticsData?.goalCompletions || 0;
+      totalRevenue += analyticsData?.revenue || 0;
+      totalClicks += searchConsoleData?.clicks || 0;
+      totalImpressions += searchConsoleData?.impressions || 0;
     }
   } catch (error) {
     console.log('Google data not available:', error);
@@ -417,7 +417,7 @@ export async function generatePDFReport(htmlContent: string): Promise<Buffer> {
     console.log('Browser launched successfully');
   } catch (error) {
     console.error('Failed to launch browser:', error);
-    throw new Error(`PDF generation failed: ${error.message}`);
+    throw new Error(`PDF generation failed: ${(error as Error).message}`);
   }
   
   try {
@@ -442,7 +442,7 @@ export async function generatePDFReport(htmlContent: string): Promise<Buffer> {
     return Buffer.from(pdfBuffer);
   } catch (error) {
     console.error('Error during PDF generation:', error);
-    throw new Error(`PDF generation failed: ${error.message}`);
+    throw new Error(`PDF generation failed: ${(error as Error).message}`);
   } finally {
     if (browser) {
       await browser.close();
