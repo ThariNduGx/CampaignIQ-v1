@@ -24,6 +24,7 @@ export default function AiInsights({ workspaceId, dateRange, selectedAnalyticsPr
   const { data: insights, isLoading, error } = useQuery({
     queryKey: ["/api/workspaces", workspaceId, "ai-insights"],
     enabled: !!workspaceId,
+    staleTime: 0, // Always refetch to get latest insights
   });
 
   const generateInsightsMutation = useMutation({
@@ -39,9 +40,11 @@ export default function AiInsights({ workspaceId, dateRange, selectedAnalyticsPr
     onSuccess: (newInsights) => {
       // Update the query cache with the new insights
       queryClient.setQueryData(["/api/workspaces", workspaceId, "ai-insights"], newInsights);
+      // Also invalidate to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/workspaces", workspaceId, "ai-insights"] });
       toast({
         title: "Success",
-        description: "AI insights generated successfully",
+        description: `AI insights generated successfully (${newInsights?.length || 0} insights)`,
       });
     },
     onError: (error) => {

@@ -55,6 +55,7 @@ export interface IStorage {
   // AI insights operations
   createAiInsight(insight: InsertAiInsight): Promise<AiInsight>;
   getWorkspaceAiInsights(workspaceId: string, limit?: number): Promise<AiInsight[]>;
+  clearWorkspaceAiInsights(workspaceId: string): Promise<void>;
   
   // User settings operations
   getUserSettings(userId: string): Promise<UserSettings | undefined>;
@@ -231,6 +232,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(aiInsights.workspaceId, workspaceId))
       .orderBy(desc(aiInsights.createdAt))
       .limit(limit);
+  }
+
+  async clearWorkspaceAiInsights(workspaceId: string): Promise<void> {
+    await db
+      .delete(aiInsights)
+      .where(eq(aiInsights.workspaceId, workspaceId));
   }
 
   // User settings operations

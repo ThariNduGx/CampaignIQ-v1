@@ -379,12 +379,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { generateAIInsights } = await import('./services/openai');
       const insights = await generateAIInsights(reportData);
       
-      // Clear existing insights for this workspace and date range
-      const existingInsights = await storage.getWorkspaceAiInsights(workspaceId);
+      // Clear existing insights for this workspace before generating new ones
+      console.log(`Clearing existing AI insights for workspace: ${workspaceId}`);
+      await storage.clearWorkspaceAiInsights(workspaceId);
       
       // Store new insights in database
       const storedInsights = [];
       if (insights && insights.length > 0) {
+        console.log(`Storing ${insights.length} new AI insights for workspace: ${workspaceId}`);
         for (const insight of insights) {
           const storedInsight = await storage.createAiInsight({
             workspaceId,
@@ -398,6 +400,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           storedInsights.push(storedInsight);
         }
+        console.log(`Successfully stored ${storedInsights.length} AI insights`);
+      } else {
+        console.log('No AI insights generated to store');
       }
       
       res.json(storedInsights);
