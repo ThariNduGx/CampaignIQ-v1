@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { createUser, authenticateUser, requireAuth, getCurrentUser, type SignUpData, type SignInData } from "./auth";
 import { insertWorkspaceSchema, insertUserSettingsSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -11,15 +11,55 @@ import { googleApiService } from "./services/google";
 import { getMetaAdAccounts, getMetaCampaigns, getMetaAdInsights } from "./services/meta";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.post('/api/auth/signup', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      const userData: SignUpData = req.body;
+      const user = await createUser(userData);
+      
+      // Set session
+      req.session.userId = user.id;
+      
+      // Return user without password hash
+      const { passwordHash, ...userResponse } = user;
+      res.status(201).json(userResponse);
+    } catch (error: any) {
+      console.error("Sign up error:", error);
+      res.status(400).json({ message: error.message || "Failed to create account" });
+    }
+  });
+
+  app.post('/api/auth/signin', async (req, res) => {
+    try {
+      const credentials: SignInData = req.body;
+      const user = await authenticateUser(credentials);
+      
+      // Set session
+      req.session.userId = user.id;
+      
+      // Return user without password hash
+      const { passwordHash, ...userResponse } = user;
+      res.json(userResponse);
+    } catch (error: any) {
+      console.error("Sign in error:", error);
+      res.status(401).json({ message: error.message || "Authentication failed" });
+    }
+  });
+
+  app.post('/api/auth/signout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Sign out error:", err);
+        return res.status(500).json({ message: "Failed to sign out" });
+      }
+      res.json({ message: "Signed out successfully" });
+    });
+  });
+
+  app.get('/api/auth/user', getCurrentUser, async (req: any, res) => {
+    try {
+      const { passwordHash, ...userResponse } = req.user;
+      res.json(userResponse);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -27,9 +67,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Workspace routes
-  app.get('/api/workspaces', isAuthenticated, async (req: any, res) => {
+  app.get('/api/workspaces', requireAuth, getCurrentUser, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       let workspaces = await storage.getUserWorkspaces(userId);
       
       // Create default workspace if user has none
@@ -48,9 +88,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/workspaces', isAuthenticated, async (req: any, res) => {
+  app.post('/api/workspaces', requireAuth, getCurrentUser, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const validatedData = insertWorkspaceSchema.parse({ ...req.body, userId });
       const workspace = await storage.createWorkspace(validatedData);
       res.json(workspace);
@@ -63,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/workspaces/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/workspaces/:id', requireAuth, getCurrentUser, async (req: any, res) => {
     try {
       const workspace = await storage.getWorkspace(req.params.id);
       if (!workspace) {
@@ -77,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Platform connection routes
-  app.get('/api/workspaces/:workspaceId/connections', isAuthenticated, async (req, res) => {
+  app.get('/api/workspaces/:workspaceId/connections', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const connections = await storage.getWorkspacePlatformConnections(req.params.workspaceId);
       res.json(connections);
@@ -88,7 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // OAuth initiation routes
-  app.post('/api/oauth/:platform/init', isAuthenticated, async (req: any, res) => {
+  app.post('/api/oauth/:platform/init', requireAuth, getCurrentUser, async (req: any, res) => {
     try {
       const { platform } = req.params;
       const { workspaceId } = req.body;
@@ -151,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Disconnect platform connection
-  app.delete('/api/workspaces/:workspaceId/connections/:platform', isAuthenticated, async (req, res) => {
+  app.delete('/api/workspaces/:workspaceId/connections/:platform', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const { workspaceId, platform } = req.params;
       const userId = (req.user as any)?.claims?.sub;
@@ -169,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Campaign metrics routes
-  app.get('/api/workspaces/:workspaceId/metrics/summary', isAuthenticated, async (req, res) => {
+  app.get('/api/workspaces/:workspaceId/metrics/summary', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const { workspaceId } = req.params;
       const { startDate, endDate } = req.query;
@@ -238,7 +278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/workspaces/:workspaceId/campaigns', isAuthenticated, async (req, res) => {
+  app.get('/api/workspaces/:workspaceId/campaigns', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const campaigns = await storage.getWorkspaceCampaigns(req.params.workspaceId);
       res.json(campaigns);
@@ -249,11 +289,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI insights routes
-  app.post('/api/workspaces/:workspaceId/ai-insights', isAuthenticated, async (req: any, res) => {
+  app.post('/api/workspaces/:workspaceId/ai-insights', requireAuth, getCurrentUser, async (req: any, res) => {
     try {
       const { workspaceId } = req.params;
       const { startDate, endDate, analyticsProperty, searchConsoleDomain } = req.body;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       // Get current metrics data
       const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -412,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/workspaces/:workspaceId/ai-insights', isAuthenticated, async (req, res) => {
+  app.get('/api/workspaces/:workspaceId/ai-insights', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const { workspaceId } = req.params;
       
@@ -432,7 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export reports route
-  app.post('/api/workspaces/:workspaceId/export', isAuthenticated, async (req: any, res) => {
+  app.post('/api/workspaces/:workspaceId/export', requireAuth, getCurrentUser, async (req: any, res) => {
     try {
       const { workspaceId } = req.params;
       const { reportType, format, startDate, endDate } = req.body;
@@ -490,9 +530,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User settings routes
-  app.get('/api/user/settings', isAuthenticated, async (req: any, res) => {
+  app.get('/api/user/settings', requireAuth, getCurrentUser, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const settings = await storage.getUserSettings(userId);
       res.json(settings || {});
     } catch (error) {
@@ -501,9 +541,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/user/settings', isAuthenticated, async (req: any, res) => {
+  app.post('/api/user/settings', requireAuth, getCurrentUser, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { openaiApiKey } = req.body;
       
       const settings = await storage.upsertUserSettings({
@@ -519,7 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get available Google Analytics properties
-  app.get('/api/google/analytics/:workspaceId/properties', isAuthenticated, async (req, res) => {
+  app.get('/api/google/analytics/:workspaceId/properties', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
       const userId = (req.user as any)?.claims?.sub;
@@ -550,7 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get available Google Search Console sites
-  app.get('/api/google/search-console/:workspaceId/sites', isAuthenticated, async (req, res) => {
+  app.get('/api/google/search-console/:workspaceId/sites', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
       const userId = (req.user as any)?.claims?.sub;
@@ -583,7 +623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Google Analytics data endpoint
-  app.get('/api/google/analytics/:workspaceId', isAuthenticated, async (req, res) => {
+  app.get('/api/google/analytics/:workspaceId', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
       const userId = (req.user as any)?.claims?.sub;
@@ -622,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Google Search Console data endpoint
-  app.get('/api/google/search-console/:workspaceId', isAuthenticated, async (req, res) => {
+  app.get('/api/google/search-console/:workspaceId', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
       const userId = (req.user as any)?.claims?.sub;
@@ -663,7 +703,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Platform performance data for charts
-  app.get('/api/workspaces/:workspaceId/platform-performance', isAuthenticated, async (req, res) => {
+  app.get('/api/workspaces/:workspaceId/platform-performance', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const { workspaceId } = req.params;
       const { startDate, endDate } = req.query;
@@ -725,7 +765,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Performance trends data for line chart
-  app.get('/api/workspaces/:workspaceId/performance-trends', isAuthenticated, async (req, res) => {
+  app.get('/api/workspaces/:workspaceId/performance-trends', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const { workspaceId } = req.params;
       const { startDate, endDate } = req.query;
@@ -777,7 +817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Meta (Facebook/Instagram) API routes
-  app.get('/api/meta/:workspaceId/accounts', isAuthenticated, async (req, res) => {
+  app.get('/api/meta/:workspaceId/accounts', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const { workspaceId } = req.params;
       const accounts = await getMetaAdAccounts(workspaceId);
@@ -788,7 +828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/meta/:workspaceId/campaigns', isAuthenticated, async (req, res) => {
+  app.get('/api/meta/:workspaceId/campaigns', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const { workspaceId } = req.params;
       const { accountId } = req.query;
@@ -800,7 +840,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/meta/:workspaceId', isAuthenticated, async (req, res) => {
+  app.get('/api/meta/:workspaceId', requireAuth, getCurrentUser, async (req, res) => {
     try {
       const { workspaceId } = req.params;
       const { accountId, startDate, endDate } = req.query;
