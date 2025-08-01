@@ -22,7 +22,7 @@ export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate }
   // Disconnect mutation
   const disconnectMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest(`/api/workspaces/${workspaceId}/connections/google`, 'DELETE');
+      return await apiRequest('DELETE', `/api/workspaces/${workspaceId}/connections/google`);
     },
     onSuccess: () => {
       toast({

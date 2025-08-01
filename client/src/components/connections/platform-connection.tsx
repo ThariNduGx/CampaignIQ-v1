@@ -65,7 +65,7 @@ export default function PlatformConnection({
 
   const disconnectMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest(`/api/workspaces/${workspaceId}/connections/${platform}`, 'DELETE');
+      return await apiRequest('DELETE', `/api/workspaces/${workspaceId}/connections/${platform}`);
     },
     onSuccess: () => {
       toast({
