@@ -63,9 +63,21 @@ export class GoogleApiService {
 
   async getUserProperties(): Promise<string[]> {
     try {
+      // Try to get account summaries first, which contains properties
       const analytics = google.analyticsadmin({ version: 'v1beta', auth: this.oauth2Client });
-      const response = await analytics.properties.list();
-      return response.data.properties?.map(prop => prop.name?.split('/')[1] || '').filter(Boolean) || [];
+      const response = await analytics.accountSummaries.list();
+      
+      const properties: string[] = [];
+      response.data.accountSummaries?.forEach(account => {
+        account.propertySummaries?.forEach(property => {
+          const propertyId = property.property?.split('/')[1];
+          if (propertyId) {
+            properties.push(propertyId);
+          }
+        });
+      });
+      
+      return properties;
     } catch (error) {
       console.error('Error fetching user properties:', error);
       return [];
@@ -74,9 +86,12 @@ export class GoogleApiService {
 
   async getAnalyticsData(startDate: string, endDate: string): Promise<GoogleAnalyticsData> {
     try {
-      const properties = await this.getUserProperties();
+      // First try to get properties through account summaries
+      let properties = await this.getUserProperties();
       
+      // If that fails, try with a common demo property or return empty data
       if (properties.length === 0) {
+        console.log('No Analytics properties found for user');
         return {
           sessions: 0,
           pageviews: 0,
@@ -89,6 +104,8 @@ export class GoogleApiService {
 
       // Use the first available property
       const propertyId = properties[0];
+      console.log('Using Analytics property:', propertyId);
+      
       const analytics = google.analyticsdata({ version: 'v1beta', auth: this.oauth2Client });
       
       const response = await analytics.properties.runReport({

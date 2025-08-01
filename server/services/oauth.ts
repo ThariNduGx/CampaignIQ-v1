@@ -13,6 +13,7 @@ export function generateOAuthUrl(platform: string, workspaceId: string): string 
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const scopes = [
       'https://www.googleapis.com/auth/analytics.readonly',
+      'https://www.googleapis.com/auth/analytics.manage.users.readonly',
       'https://www.googleapis.com/auth/webmasters.readonly',
       'https://www.googleapis.com/auth/business.manage',
       'https://www.googleapis.com/auth/adwords',
