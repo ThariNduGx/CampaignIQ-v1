@@ -40,6 +40,7 @@ export interface IStorage {
   updatePlatformConnection(id: string, connection: Partial<InsertPlatformConnection>): Promise<PlatformConnection>;
   getPlatformConnection(id: string): Promise<PlatformConnection | undefined>;
   getConnection(workspaceId: string, platform: string): Promise<PlatformConnection | undefined>;
+  deletePlatformConnection(workspaceId: string, platform: string): Promise<void>;
   
   // Campaign operations
   getWorkspaceCampaigns(workspaceId: string): Promise<Campaign[]>;
