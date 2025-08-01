@@ -125,6 +125,8 @@ export default function Dashboard() {
               />
               <MetaAdsWidget 
                 workspaceId={selectedWorkspace}
+                startDate={dateRange.startDate}
+                endDate={dateRange.endDate}
               />
             </div>
           </div>
@@ -134,10 +136,7 @@ export default function Dashboard() {
             dateRange={dateRange}
           />
           
-          <CampaignTable 
-            campaigns={Array.isArray(campaigns) ? campaigns : []}
-            connections={Array.isArray(connections) ? connections : []}
-          />
+          <CampaignTable workspaceId={selectedWorkspace} />
         </main>
       </div>
     </div>

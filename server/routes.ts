@@ -6,7 +6,7 @@ import { insertWorkspaceSchema, insertUserSettingsSchema } from "@shared/schema"
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { generateOAuthUrl, exchangeCodeForTokens } from "./services/oauth";
-import { generateAIInsights } from "./services/openai.js";
+import { generateAIInsights } from "./services/openai";
 import { googleApiService } from "./services/google";
 import { getMetaAdAccounts, getMetaCampaigns, getMetaAdInsights } from "./services/meta";
 
