@@ -19,7 +19,7 @@ export default function AiInsights({ workspaceId, dateRange }: AiInsightsProps) 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: insights, isLoading } = useQuery({
+  const { data: insights, isLoading, error } = useQuery({
     queryKey: ["/api/workspaces", workspaceId, "ai-insights"],
     enabled: !!workspaceId,
   });
@@ -132,6 +132,14 @@ export default function AiInsights({ workspaceId, dateRange }: AiInsightsProps) 
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
               <p className="text-slate-400 mt-2">Loading insights...</p>
             </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+              <p className="text-slate-400 mb-2">Error loading insights</p>
+              <p className="text-slate-500 text-sm">
+                {error instanceof Error ? error.message : 'Unknown error occurred'}
+              </p>
+            </div>
           ) : insights && Array.isArray(insights) && insights.length > 0 ? (
             insights.map((insight: any) => (
               <div 
@@ -140,13 +148,27 @@ export default function AiInsights({ workspaceId, dateRange }: AiInsightsProps) 
               >
                 <div className="flex items-start space-x-3">
                   {getIcon(insight.type)}
-                  <div>
+                  <div className="flex-1">
                     <h4 className={`font-medium mb-1 ${getTitleClass(insight.type)}`}>
                       {insight.title}
                     </h4>
-                    <p className="text-sm text-slate-300">
+                    <p className="text-sm text-slate-300 leading-relaxed">
                       {insight.content}
                     </p>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        insight.priority === 'high' 
+                          ? 'bg-red-500/20 text-red-400' 
+                          : insight.priority === 'medium' 
+                          ? 'bg-amber-500/20 text-amber-400' 
+                          : 'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        {insight.priority || 'medium'} priority
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {new Date(insight.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

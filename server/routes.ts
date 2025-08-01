@@ -332,6 +332,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { generateAIInsights } = await import('./services/openai');
       const insights = await generateAIInsights(reportData);
       
+      // Store insights in database for future retrieval
+      if (insights && insights.length > 0) {
+        for (const insight of insights) {
+          await storage.createAiInsight({
+            workspaceId,
+            title: insight.title,
+            content: insight.content,
+            type: insight.type,
+            dateRange: {
+              startDate: start.toISOString().split('T')[0],
+              endDate: end.toISOString().split('T')[0]
+            }
+          });
+        }
+      }
+      
       res.json(insights);
     } catch (error) {
       console.error("Error generating AI insights:", error);
@@ -341,27 +357,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/workspaces/:workspaceId/ai-insights', isAuthenticated, async (req, res) => {
     try {
-      // For now, return sample insights until the user generates them
-      const sampleInsights = [
-        {
-          id: '1',
-          title: 'Connect Your Platforms',
-          content: 'Connect your Google Analytics and Meta advertising accounts to get personalized AI insights about your campaign performance.',
-          type: 'info',
-          priority: 'high',
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          title: 'Generate AI Summary',
-          content: 'Click the "Generate AI Summary" button to get intelligent insights about your marketing performance, trends, and recommendations.',
-          type: 'info',
-          priority: 'medium',
-          createdAt: new Date().toISOString()
-        }
-      ];
+      const { workspaceId } = req.params;
       
-      res.json(sampleInsights);
+      // Get stored AI insights from database
+      const insights = await storage.getWorkspaceAiInsights(workspaceId);
+      
+      if (insights && insights.length > 0) {
+        res.json(insights);
+      } else {
+        // Return empty array instead of sample data
+        res.json([]);
+      }
     } catch (error) {
       console.error("Error fetching AI insights:", error);
       res.status(500).json({ message: "Failed to fetch AI insights" });
