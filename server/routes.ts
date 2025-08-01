@@ -8,6 +8,7 @@ import { fromZodError } from "zod-validation-error";
 import { generateOAuthUrl, exchangeCodeForTokens } from "./services/oauth";
 import { generateAIInsights } from "./services/openai.js";
 import { googleApiService } from "./services/google";
+import { getMetaAdAccounts, getMetaCampaigns, getMetaAdInsights } from "./services/meta";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -467,6 +468,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching Google My Business data:', error);
       res.status(500).json({ message: 'Failed to fetch My Business data' });
+    }
+  });
+
+  // Meta (Facebook/Instagram) API routes
+  app.get('/api/meta/:workspaceId/accounts', isAuthenticated, async (req, res) => {
+    try {
+      const { workspaceId } = req.params;
+      const accounts = await getMetaAdAccounts(workspaceId);
+      res.json(accounts);
+    } catch (error) {
+      console.error("Error fetching Meta ad accounts:", error);
+      res.status(500).json({ message: "Failed to fetch Meta ad accounts" });
+    }
+  });
+
+  app.get('/api/meta/:workspaceId/campaigns', isAuthenticated, async (req, res) => {
+    try {
+      const { workspaceId } = req.params;
+      const { accountId } = req.query;
+      const campaigns = await getMetaCampaigns(workspaceId, accountId as string);
+      res.json(campaigns);
+    } catch (error) {
+      console.error("Error fetching Meta campaigns:", error);
+      res.status(500).json({ message: "Failed to fetch Meta campaigns" });
+    }
+  });
+
+  app.get('/api/meta/:workspaceId', isAuthenticated, async (req, res) => {
+    try {
+      const { workspaceId } = req.params;
+      const { accountId, startDate, endDate } = req.query;
+      
+      const insights = await getMetaAdInsights(
+        workspaceId, 
+        accountId as string,
+        startDate as string,
+        endDate as string
+      );
+      
+      res.json(insights);
+    } catch (error) {
+      console.error("Error fetching Meta ad insights:", error);
+      res.status(500).json({ message: "Failed to fetch Meta ad insights" });
     }
   });
 

@@ -123,20 +123,56 @@ export async function exchangeCodeForTokens(platform: string, code: string): Pro
     });
     
     if (!tokenResponse.ok) {
-      throw new Error('Failed to exchange code for tokens');
+      const errorText = await tokenResponse.text();
+      console.error('Meta token exchange error:', errorText);
+      throw new Error(`Failed to exchange code for Meta tokens: ${errorText}`);
     }
     
     const tokens = await tokenResponse.json();
     
+    // Exchange for long-lived token
+    const longLivedTokenUrl = 'https://graph.facebook.com/v18.0/oauth/access_token';
+    const longLivedParams = new URLSearchParams({
+      grant_type: 'fb_exchange_token',
+      client_id: process.env.META_APP_ID || '',
+      client_secret: process.env.META_APP_SECRET || '',
+      fb_exchange_token: tokens.access_token,
+    });
+
+    try {
+      const longLivedResponse = await fetch(longLivedTokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: longLivedParams,
+      });
+
+      if (longLivedResponse.ok) {
+        const longLivedData = await longLivedResponse.json();
+        tokens.access_token = longLivedData.access_token;
+        tokens.expires_in = longLivedData.expires_in || 5184000; // 60 days
+      }
+    } catch (error) {
+      console.warn('Failed to get long-lived token, using short-lived:', error);
+    }
+    
     // Get user info
-    const userResponse = await fetch(`https://graph.facebook.com/me?access_token=${tokens.access_token}`);
+    const userResponse = await fetch(`https://graph.facebook.com/me?fields=id,name,email&access_token=${tokens.access_token}`);
+    
+    if (!userResponse.ok) {
+      const errorText = await userResponse.text();
+      console.error('Meta user info error:', errorText);
+      throw new Error(`Failed to get Meta user info: ${errorText}`);
+    }
+    
     const userInfo = await userResponse.json();
     
     return {
       accessToken: tokens.access_token,
       expiresIn: tokens.expires_in || 3600,
       accountId: userInfo.id,
-      accountName: userInfo.name,
+      accountName: userInfo.name || userInfo.email,
     };
   }
   
