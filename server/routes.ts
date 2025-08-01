@@ -472,14 +472,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.setHeader('Content-Type', mimeType);
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
       
       if (Buffer.isBuffer(content)) {
         res.setHeader('Content-Length', content.length);
-        res.send(content);
+        res.end(content);
       } else {
-        res.setHeader('Content-Length', Buffer.byteLength(content, 'utf8'));
-        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
-        res.send(content);
+        const buffer = Buffer.from(content, 'utf8');
+        res.setHeader('Content-Length', buffer.length);
+        res.end(buffer);
       }
       
     } catch (error) {

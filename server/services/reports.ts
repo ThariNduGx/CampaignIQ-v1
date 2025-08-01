@@ -388,7 +388,9 @@ export async function generatePDFReport(htmlContent: string): Promise<Buffer> {
       '--no-first-run',
       '--no-zygote',
       '--single-process',
-      '--disable-gpu'
+      '--disable-gpu',
+      '--disable-web-security',
+      '--disable-features=VizDisplayCompositor'
     ]
   });
   
@@ -515,7 +517,11 @@ export function generateXLSXReport(data: ReportData): Buffer {
     XLSX.utils.book_append_sheet(workbook, insightsSheet, 'AI Insights');
   }
 
-  // Generate buffer
-  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-  return buffer;
+  // Generate buffer with proper options
+  const buffer = XLSX.write(workbook, { 
+    type: 'buffer', 
+    bookType: 'xlsx',
+    compression: true
+  });
+  return Buffer.from(buffer);
 }
