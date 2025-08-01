@@ -378,25 +378,40 @@ export function generateHTMLReport(data: ReportData, reportType: string): string
 }
 
 export async function generatePDFReport(htmlContent: string): Promise<Buffer> {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process',
-      '--disable-gpu',
-      '--disable-web-security',
-      '--disable-features=VizDisplayCompositor'
-    ]
-  });
+  console.log('Starting PDF generation...');
+  
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+        '--disable-extensions',
+        '--disable-plugins'
+      ]
+    });
+    console.log('Browser launched successfully');
+  } catch (error) {
+    console.error('Failed to launch browser:', error);
+    throw new Error(`PDF generation failed: ${error.message}`);
+  }
   
   try {
     const page = await browser.newPage();
+    console.log('Page created, setting content...');
+    
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    console.log('Content set, generating PDF...');
     
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -409,9 +424,16 @@ export async function generatePDFReport(htmlContent: string): Promise<Buffer> {
       }
     });
     
+    console.log('PDF generated successfully, size:', pdfBuffer.length);
     return Buffer.from(pdfBuffer);
+  } catch (error) {
+    console.error('Error during PDF generation:', error);
+    throw new Error(`PDF generation failed: ${error.message}`);
   } finally {
-    await browser.close();
+    if (browser) {
+      await browser.close();
+      console.log('Browser closed');
+    }
   }
 }
 

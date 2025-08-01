@@ -52,6 +52,10 @@ export default function ExportReports({ workspaceId }: ExportReportsProps) {
         const content = await response.arrayBuffer();
         contentType = 'application/pdf';
         blob = new Blob([content], { type: contentType });
+      } else if (params.format === 'xlsx') {
+        const content = await response.arrayBuffer();
+        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        blob = new Blob([content], { type: contentType });
       } else {
         const content = await response.text();
         contentType = 'text/html';
@@ -139,7 +143,8 @@ export default function ExportReports({ workspaceId }: ExportReportsProps) {
   const formatOptions = [
     { value: "pdf", label: "PDF Document", description: "Professional formatted report" },
     { value: "csv", label: "CSV Data", description: "Raw data for analysis" },
-    { value: "xlsx", label: "Excel Spreadsheet", description: "Formatted spreadsheet with charts" }
+    { value: "xlsx", label: "Excel Spreadsheet", description: "Formatted spreadsheet with charts" },
+    { value: "html", label: "HTML Report", description: "Web-friendly formatted report" }
   ];
 
   const dateRangePresets = [
