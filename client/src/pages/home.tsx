@@ -26,8 +26,10 @@ export default function Home() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
+  const { logoutMutation } = useAuth();
+
   const handleLogout = () => {
-    window.location.href = "/api/logout";
+    logoutMutation.mutate();
   };
 
   if (isLoading) {

@@ -12,7 +12,11 @@ interface TopBarProps {
 }
 
 export default function TopBar({ dateRange, onDateRangeChange }: TopBarProps) {
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   return (
     <header className="bg-surface/80 backdrop-blur-lg border-b border-primary-900/20 sticky top-0 z-30">
@@ -54,12 +58,21 @@ export default function TopBar({ dateRange, onDateRangeChange }: TopBarProps) {
               alt="User profile" 
               className="w-8 h-8 rounded-full object-cover" 
             />
-            <span className="text-sm font-medium">
-              {(user as any)?.firstName && (user as any)?.lastName 
-                ? `${(user as any).firstName} ${(user as any).lastName}` 
-                : (user as any)?.email?.split('@')[0] || 'User'}
-            </span>
-            <i className="fas fa-chevron-down text-slate-400 text-xs"></i>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">
+                {(user as any)?.firstName && (user as any)?.lastName 
+                  ? `${(user as any).firstName} ${(user as any).lastName}` 
+                  : (user as any)?.email?.split('@')[0] || 'User'}
+              </span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleLogout}
+                className="text-xs px-0 py-0 h-auto justify-start hover:bg-red-600/20 hover:text-red-400 transition-colors"
+              >
+                Sign Out
+              </Button>
+            </div>
           </Card>
         </div>
       </div>

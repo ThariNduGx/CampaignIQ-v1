@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
+import Auth from "@/pages/auth";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import Connections from "@/pages/connections";
@@ -29,7 +30,9 @@ function Router() {
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
-          <Route path="/connections" component={Landing} />
+          <Route path="/auth" component={Auth} />
+          <Route path="/login" component={Auth} />
+          <Route path="/register" component={Auth} />
         </>
       ) : (
         <>
@@ -56,8 +59,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
         <Router />
+        <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
   );
