@@ -3,27 +3,25 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff, Loader2, BarChart3 } from "lucide-react";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { BarChart3 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-// Validation schemas
 const signInSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(1, "Password is required"),
 });
 
 const signUpSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -33,11 +31,8 @@ type SignInForm = z.infer<typeof signInSchema>;
 type SignUpForm = z.infer<typeof signUpSchema>;
 
 export default function Auth() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
 
-  // Sign in form
   const signInForm = useForm<SignInForm>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
@@ -46,7 +41,6 @@ export default function Auth() {
     },
   });
 
-  // Sign up form
   const signUpForm = useForm<SignUpForm>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
@@ -58,14 +52,20 @@ export default function Auth() {
     },
   });
 
-  // Sign in mutation
   const signInMutation = useMutation({
     mutationFn: async (data: SignInForm) => {
-      return await apiRequest("/api/auth/signin", {
+      const response = await fetch("/api/auth/signin", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Sign in failed");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -77,21 +77,27 @@ export default function Auth() {
     onError: (error: Error) => {
       toast({
         title: "Sign in failed",
-        description: error.message || "Please check your credentials and try again.",
+        description: error.message || "Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  // Sign up mutation
   const signUpMutation = useMutation({
     mutationFn: async (data: SignUpForm) => {
       const { confirmPassword, ...signUpData } = data;
-      return await apiRequest("/api/auth/signup", {
+      const response = await fetch("/api/auth/signup", {
         method: "POST",
         body: JSON.stringify(signUpData),
         headers: { "Content-Type": "application/json" },
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Sign up failed");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -153,18 +159,19 @@ export default function Auth() {
                         <FormItem>
                           <FormLabel className="text-white">Email</FormLabel>
                           <FormControl>
-                            <Input
-                              type="email"
-                              placeholder="Enter your email"
-                              {...field}
-                              className="bg-surface-light border-surface-border text-white placeholder:text-slate-400"
-                            />
+                            <div className="gradient-input">
+                              <Input
+                                type="email"
+                                placeholder="Enter your email"
+                                {...field}
+                                className="bg-surface-light border-surface-border placeholder:text-slate-400"
+                              />
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={signInForm.control}
                       name="password"
@@ -172,46 +179,25 @@ export default function Auth() {
                         <FormItem>
                           <FormLabel className="text-white">Password</FormLabel>
                           <FormControl>
-                            <div className="relative">
+                            <div className="gradient-input">
                               <Input
-                                type={showPassword ? "text" : "password"}
+                                type="password"
                                 placeholder="Enter your password"
                                 {...field}
-                                className="bg-surface-light border-surface-border text-white placeholder:text-slate-400 pr-10"
+                                className="bg-surface-light border-surface-border placeholder:text-slate-400"
                               />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() => setShowPassword(!showPassword)}
-                              >
-                                {showPassword ? (
-                                  <EyeOff className="h-4 w-4 text-slate-400" />
-                                ) : (
-                                  <Eye className="h-4 w-4 text-slate-400" />
-                                )}
-                              </Button>
                             </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
-                    <Button
-                      type="submit"
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                       disabled={signInMutation.isPending}
                     >
-                      {signInMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Signing in...
-                        </>
-                      ) : (
-                        "Sign In"
-                      )}
+                      {signInMutation.isPending ? "Signing in..." : "Sign In"}
                     </Button>
                   </form>
                 </Form>
@@ -229,17 +215,18 @@ export default function Auth() {
                           <FormItem>
                             <FormLabel className="text-white">First Name</FormLabel>
                             <FormControl>
-                              <Input
-                                placeholder="First name"
-                                {...field}
-                                className="bg-surface-light border-surface-border text-white placeholder:text-slate-400"
-                              />
+                              <div className="gradient-input">
+                                <Input
+                                  placeholder="First name"
+                                  {...field}
+                                  className="bg-surface-light border-surface-border placeholder:text-slate-400"
+                                />
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-
                       <FormField
                         control={signUpForm.control}
                         name="lastName"
@@ -247,18 +234,19 @@ export default function Auth() {
                           <FormItem>
                             <FormLabel className="text-white">Last Name</FormLabel>
                             <FormControl>
-                              <Input
-                                placeholder="Last name"
-                                {...field}
-                                className="bg-surface-light border-surface-border text-white placeholder:text-slate-400"
-                              />
+                              <div className="gradient-input">
+                                <Input
+                                  placeholder="Last name"
+                                  {...field}
+                                  className="bg-surface-light border-surface-border placeholder:text-slate-400"
+                                />
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
-
                     <FormField
                       control={signUpForm.control}
                       name="email"
@@ -266,18 +254,19 @@ export default function Auth() {
                         <FormItem>
                           <FormLabel className="text-white">Email</FormLabel>
                           <FormControl>
-                            <Input
-                              type="email"
-                              placeholder="Enter your email"
-                              {...field}
-                              className="bg-surface-light border-surface-border text-white placeholder:text-slate-400"
-                            />
+                            <div className="gradient-input">
+                              <Input
+                                type="email"
+                                placeholder="Enter your email"
+                                {...field}
+                                className="bg-surface-light border-surface-border placeholder:text-slate-400"
+                              />
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={signUpForm.control}
                       name="password"
@@ -285,33 +274,19 @@ export default function Auth() {
                         <FormItem>
                           <FormLabel className="text-white">Password</FormLabel>
                           <FormControl>
-                            <div className="relative">
+                            <div className="gradient-input">
                               <Input
-                                type={showPassword ? "text" : "password"}
-                                placeholder="Create a password"
+                                type="password"
+                                placeholder="Enter your password"
                                 {...field}
-                                className="bg-surface-light border-surface-border text-white placeholder:text-slate-400 pr-10"
+                                className="bg-surface-light border-surface-border placeholder:text-slate-400"
                               />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() => setShowPassword(!showPassword)}
-                              >
-                                {showPassword ? (
-                                  <EyeOff className="h-4 w-4 text-slate-400" />
-                                ) : (
-                                  <Eye className="h-4 w-4 text-slate-400" />
-                                )}
-                              </Button>
                             </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={signUpForm.control}
                       name="confirmPassword"
@@ -319,46 +294,25 @@ export default function Auth() {
                         <FormItem>
                           <FormLabel className="text-white">Confirm Password</FormLabel>
                           <FormControl>
-                            <div className="relative">
+                            <div className="gradient-input">
                               <Input
-                                type={showConfirmPassword ? "text" : "password"}
+                                type="password"
                                 placeholder="Confirm your password"
                                 {...field}
-                                className="bg-surface-light border-surface-border text-white placeholder:text-slate-400 pr-10"
+                                className="bg-surface-light border-surface-border placeholder:text-slate-400"
                               />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              >
-                                {showConfirmPassword ? (
-                                  <EyeOff className="h-4 w-4 text-slate-400" />
-                                ) : (
-                                  <Eye className="h-4 w-4 text-slate-400" />
-                                )}
-                              </Button>
                             </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
-                    <Button
-                      type="submit"
-                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
                       disabled={signUpMutation.isPending}
                     >
-                      {signUpMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Creating account...
-                        </>
-                      ) : (
-                        "Create Account"
-                      )}
+                      {signUpMutation.isPending ? "Creating Account..." : "Create Account"}
                     </Button>
                   </form>
                 </Form>
@@ -366,12 +320,6 @@ export default function Auth() {
             </Tabs>
           </CardContent>
         </Card>
-
-        <div className="text-center mt-6">
-          <p className="text-sm text-slate-400">
-            Secure authentication with encrypted password storage
-          </p>
-        </div>
       </div>
     </div>
   );

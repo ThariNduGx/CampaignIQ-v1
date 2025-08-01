@@ -95,6 +95,28 @@
   .animate-pulse-slow {
     animation: pulse 3s infinite;
   }
+  
+  /* Gradient input styling */
+  .gradient-input input {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    transition: all 0.3s ease;
+  }
+
+  .gradient-input input:focus {
+    color: white !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    background: transparent !important;
+  }
+
+  .gradient-input input::placeholder {
+    color: rgb(148 163 184) !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+  }
 }
 
 @keyframes fadeIn {
