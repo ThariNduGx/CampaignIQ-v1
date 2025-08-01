@@ -259,48 +259,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const end = endDate ? new Date(endDate) : new Date();
       
-      // Get real data from connected platforms
-      let totalSpend = 0;
-      let totalClicks = 0;
-      let totalImpressions = 0;
-      let totalConversions = 0;
-      let totalRevenue = 0;
-      
-      try {
-        // Get Google Analytics data
-        const googleConnection = await storage.getConnection(workspaceId, 'google');
-        if (googleConnection) {
+      // Fetch comprehensive data from all platforms
+      let googleAnalyticsData = null;
+      let googleSearchConsoleData = null;
+      let metaData = null;
+
+      // Fetch Google Analytics data
+      const googleConnection = await storage.getConnection(workspaceId, 'google');
+      if (googleConnection) {
+        try {
+          const { googleApiService } = await import('./services/google');
           googleApiService.setCredentials({
             access_token: googleConnection.accessToken,
             refresh_token: googleConnection.refreshToken || undefined,
-            scope: 'https://www.googleapis.com/auth/analytics.readonly',
+            scope: 'https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly',
             token_type: 'Bearer',
             expiry_date: googleConnection.expiresAt ? new Date(googleConnection.expiresAt).getTime() : undefined,
           });
-          
-          const analyticsData = await googleApiService.getAnalyticsData('415651514', start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
-          totalConversions += analyticsData.goalCompletions || 0;
-          totalRevenue += analyticsData.revenue || 0;
+
+          // Get Analytics data
+          try {
+            googleAnalyticsData = await googleApiService.getAnalyticsData(
+              '415651514', // Property ID
+              start.toISOString().split('T')[0],
+              end.toISOString().split('T')[0]
+            );
+          } catch (error: any) {
+            console.log("Google Analytics data unavailable:", error.message);
+          }
+
+          // Get Search Console data  
+          try {
+            googleSearchConsoleData = await googleApiService.getSearchConsoleData(
+              'https://atechclub.com/',
+              start.toISOString().split('T')[0],
+              end.toISOString().split('T')[0]
+            );
+          } catch (error: any) {
+            console.log("Google Search Console data unavailable:", error.message);
+          }
+        } catch (error) {
+          console.error("Error with Google services:", error);
         }
-      } catch (error: any) {
-        console.log('Google Analytics data not available:', error.message);
       }
-      
-      try {
-        // Get Meta advertising data
-        const metaConnection = await storage.getConnection(workspaceId, 'meta');
-        if (metaConnection) {
-          const metaData = await getMetaAdInsights(workspaceId, undefined, start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
-          totalSpend += metaData.spend || 0;
-          totalClicks += metaData.clicks || 0;
-          totalImpressions += metaData.impressions || 0;
+
+      // Fetch Meta data
+      const metaConnection = await storage.getConnection(workspaceId, 'meta');
+      if (metaConnection) {
+        try {
+          console.log("Fetching Meta ad insights...");
+          const { getMetaAdInsights } = await import('./services/meta');
+          metaData = await getMetaAdInsights(
+            metaConnection.accessToken,
+            start.toISOString().split('T')[0],
+            end.toISOString().split('T')[0]
+          );
+          console.log("Meta insights aggregated:", metaData);
+        } catch (error) {
+          console.error("Error fetching Meta data:", error);
         }
-      } catch (error: any) {
-        console.log('Meta advertising data not available:', error.message);
       }
-      
+
+      // Calculate totals and aggregates
+      let totalSpend = 0;
+      let totalConversions = 0;
+      let totalRevenue = 0;
+      let totalClicks = (metaData?.clicks || 0) + (googleAnalyticsData?.sessions || 0);
+      let totalImpressions = (metaData?.impressions || 0) + (googleSearchConsoleData?.impressions || 0);
+
+      if (metaData?.spend) {
+        totalSpend += metaData.spend;
+      }
+      if (googleAnalyticsData?.revenue) {
+        totalRevenue += googleAnalyticsData.revenue;
+      }
+      if (googleAnalyticsData?.goalCompletions) {
+        totalConversions += googleAnalyticsData.goalCompletions;
+      }
+
       // Calculate derived metrics
-      const avgCtr = totalImpressions > 0 ? totalClicks / totalImpressions : 0;
+      const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
       const avgRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
       
       const currentMetrics = {
@@ -313,18 +351,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalImpressions
       };
       
-      // Create report data structure for AI analysis
+      // Create comprehensive report data structure for AI analysis
       const reportData = {
         summary: currentMetrics,
         platforms: {
-          google: { analytics: null, searchConsole: null },
-          meta: null
+          google: { 
+            analytics: googleAnalyticsData,
+            searchConsole: googleSearchConsoleData 
+          },
+          meta: metaData
         },
         campaigns: [],
         aiInsights: [],
         dateRange: {
-          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          endDate: new Date().toISOString().split('T')[0]
+          startDate: start.toISOString().split('T')[0],
+          endDate: end.toISOString().split('T')[0]
         }
       };
 
@@ -332,10 +373,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { generateAIInsights } = await import('./services/openai');
       const insights = await generateAIInsights(reportData);
       
-      // Store insights in database for future retrieval
+      // Clear existing insights for this workspace and date range
+      const existingInsights = await storage.getWorkspaceAiInsights(workspaceId);
+      
+      // Store new insights in database
+      const storedInsights = [];
       if (insights && insights.length > 0) {
         for (const insight of insights) {
-          await storage.createAiInsight({
+          const storedInsight = await storage.createAiInsight({
             workspaceId,
             title: insight.title,
             content: insight.content,
@@ -345,10 +390,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               endDate: end.toISOString().split('T')[0]
             }
           });
+          storedInsights.push(storedInsight);
         }
       }
       
-      res.json(insights);
+      res.json(storedInsights);
     } catch (error) {
       console.error("Error generating AI insights:", error);
       res.status(500).json({ message: "Failed to generate AI insights" });
