@@ -7,7 +7,7 @@ import {
   aiInsights,
   userSettings,
   type User,
-  type UpsertUser,
+  type InsertUser,
   type Workspace,
   type InsertWorkspace,
   type PlatformConnection,
@@ -27,7 +27,7 @@ import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
 export interface IStorage {
   // User operations (IMPORTANT: mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  upsertUser(user: InsertUser): Promise<User>;
   
   // Workspace operations
   getUserWorkspaces(userId: string): Promise<Workspace[]>;
@@ -69,7 +69,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async upsertUser(userData: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(userData)
@@ -137,6 +137,17 @@ export class DatabaseStorage implements IStorage {
         eq(platformConnections.isActive, true)
       ));
     return connection;
+  }
+
+  async updateConnection(workspaceId: string, platform: string, updates: Partial<PlatformConnection>): Promise<void> {
+    await db
+      .update(platformConnections)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(
+        eq(platformConnections.workspaceId, workspaceId),
+        eq(platformConnections.platform, platform),
+        eq(platformConnections.isActive, true)
+      ));
   }
 
   async deletePlatformConnection(workspaceId: string, platform: string): Promise<void> {

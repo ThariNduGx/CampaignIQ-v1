@@ -620,7 +620,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
+  // Combined Google data endpoint (Analytics + Search Console)
+  app.get('/api/google/:workspaceId', requireAuth, getCurrentUser, async (req, res) => {
+    try {
+      const { workspaceId } = req.params;
+      const { startDate, endDate } = req.query;
+      
+      const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const end = endDate ? new Date(endDate as string) : new Date();
+      
+      const connection = await storage.getConnection(workspaceId, 'google');
+      if (!connection) {
+        return res.status(404).json({ message: 'Google connection not found' });
+      }
+      
+      googleApiService.setCredentials({
+        access_token: connection.accessToken,
+        refresh_token: connection.refreshToken || undefined,
+        scope: 'https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly',
+        token_type: 'Bearer',
+        expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
+      });
+      
+      const [analyticsData, searchConsoleData] = await Promise.all([
+        googleApiService.getAnalyticsData('415651514', start.toISOString().split('T')[0], end.toISOString().split('T')[0]),
+        googleApiService.getSearchConsoleData('https://www.silvans.com.au/', start.toISOString().split('T')[0], end.toISOString().split('T')[0])
+      ]);
+      
+      res.json({
+        analytics: analyticsData,
+        searchConsole: searchConsoleData
+      });
+    } catch (error) {
+      console.error('Error fetching Google data:', error);
+      res.status(500).json({ message: 'Failed to fetch Google data' });
+    }
+  });
 
   // Google Analytics data endpoint
   app.get('/api/google/analytics/:workspaceId', requireAuth, getCurrentUser, async (req, res) => {

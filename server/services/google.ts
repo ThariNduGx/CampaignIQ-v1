@@ -107,6 +107,14 @@ export class GoogleApiService {
 
       console.log('Using Analytics property:', targetPropertyId);
       
+      // Refresh token if needed
+      try {
+        await this.oauth2Client.getAccessToken();
+      } catch (tokenError) {
+        console.error('Token refresh failed:', tokenError);
+        throw new Error('Authentication failed - please reconnect your Google account');
+      }
+      
       const analytics = google.analyticsdata({ version: 'v1beta', auth: this.oauth2Client });
       
       const response = await analytics.properties.runReport({
@@ -121,6 +129,7 @@ export class GoogleApiService {
             { name: 'conversions' },
             { name: 'totalRevenue' }
           ],
+          dimensions: []
         },
       });
 
