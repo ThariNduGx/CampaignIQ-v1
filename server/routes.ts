@@ -783,7 +783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/google/analytics/:workspaceId', requireAuth, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = (req.user as any)?.id; // Use custom auth user ID
       const { propertyId, startDate, endDate } = req.query;
       
       if (!userId) {
@@ -836,7 +836,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/google/search-console/:workspaceId', requireAuth, async (req, res) => {
     try {
       const workspaceId = req.params.workspaceId;
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = (req.user as any)?.id; // Use custom auth user ID
       const { siteUrl, startDate, endDate } = req.query;
       
       if (!userId) {
