@@ -810,7 +810,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Google connection not found' });
       }
 
-      // Set credentials and fetch data
+      // Set credentials and refresh if needed
       googleApiService.setCredentials({
         access_token: connection.accessToken,
         refresh_token: connection.refreshToken || undefined,
@@ -819,8 +819,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
       });
 
+      // Check and refresh token if needed
+      await googleApiService.refreshAccessTokenIfNeeded();
+
+      // Use provided propertyId or get first available property
+      let targetPropertyId = propertyId as string;
+      if (!targetPropertyId) {
+        const properties = await googleApiService.getUserProperties();
+        if (properties.length === 0) {
+          return res.status(404).json({ message: 'No Analytics properties found' });
+        }
+        targetPropertyId = properties[0];
+        console.log('Auto-selected Analytics property:', targetPropertyId);
+      }
+
       const analyticsData = await googleApiService.getAnalyticsData(
-        propertyId as string || '',
+        targetPropertyId,
         startDate as string || '2025-07-02',
         endDate as string || '2025-08-01'
       );
@@ -849,7 +863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Google connection not found' });
       }
 
-      // Set credentials and fetch data
+      // Set credentials and refresh if needed
       googleApiService.setCredentials({
         access_token: connection.accessToken,
         refresh_token: connection.refreshToken || undefined,
@@ -858,8 +872,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
       });
 
+      // Check and refresh token if needed
+      await googleApiService.refreshAccessTokenIfNeeded();
+
+      // Use provided siteUrl or get first available site
+      let targetSiteUrl = siteUrl as string;
+      if (!targetSiteUrl) {
+        const sites = await googleApiService.getUserSites();
+        if (sites.length === 0) {
+          return res.status(404).json({ message: 'No Search Console sites found' });
+        }
+        targetSiteUrl = sites[0];
+        console.log('Auto-selected Search Console site:', targetSiteUrl);
+      }
+
       const searchConsoleData = await googleApiService.getSearchConsoleData(
-        siteUrl as string || '',
+        targetSiteUrl,
         startDate as string || '2024-01-01',
         endDate as string || '2024-01-31'
       );
@@ -897,14 +925,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             expiry_date: googleConnection.expiresAt ? new Date(googleConnection.expiresAt).getTime() : undefined,
           });
           
-          const analyticsData = await googleApiService.getAnalyticsData('415651514', start as string, end as string);
-          googleData.conversions = analyticsData.goalCompletions || 0;
-          googleData.revenue = analyticsData.revenue || 0;
+          // Get user's first available property dynamically
+          const properties = await googleApiService.getUserProperties();
+          if (properties.length > 0) {
+            const analyticsData = await googleApiService.getAnalyticsData(properties[0], start as string, end as string);
+            googleData.conversions = analyticsData.goalCompletions || 0;
+            googleData.revenue = analyticsData.revenue || 0;
+          }
           
           // Get Search Console data for impressions and clicks
-          const searchConsoleData = await googleApiService.getSearchConsoleData('https://www.silvans.com.au/', start as string, end as string);
-          googleData.impressions = searchConsoleData.impressions || 0;
-          googleData.clicks = searchConsoleData.clicks || 0;
+          const sites = await googleApiService.getUserSites();
+          if (sites.length > 0) {
+            const searchConsoleData = await googleApiService.getSearchConsoleData(sites[0], start as string, end as string);
+            googleData.impressions = searchConsoleData.impressions || 0;
+            googleData.clicks = searchConsoleData.clicks || 0;
+          }
         }
       } catch (error: any) {
         console.log('Google data not available:', error.message);

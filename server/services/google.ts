@@ -75,6 +75,18 @@ export class GoogleApiService {
     }
   }
 
+  async refreshAccessToken(refreshToken: string) {
+    try {
+      this.oauth2Client.setCredentials({ refresh_token: refreshToken });
+      const response = await this.oauth2Client.refreshAccessToken();
+      console.log('Access token refreshed successfully');
+      return response.credentials;
+    } catch (error) {
+      console.error('Failed to refresh access token:', error);
+      throw error;
+    }
+  }
+
   async getUserProperties(): Promise<string[]> {
     try {
       // Refresh token if needed
