@@ -34,6 +34,12 @@ export default function ExportReports({ workspaceId }: ExportReportsProps) {
       // Use the apiRequest function to handle authentication properly
       const response = await apiRequest("POST", `/api/workspaces/${workspaceId}/export`, params);
       
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Export error response:', errorData);
+        throw new Error(`Export failed: ${response.status} - ${errorData}`);
+      }
+      
       // Create blob with proper content type based on format
       let blob: Blob;
       let contentType: string;

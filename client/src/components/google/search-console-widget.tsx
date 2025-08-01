@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Search, MousePointer, TrendingUp, Hash, Settings, Unplug } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import * as React from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface SearchConsoleWidgetProps {
@@ -30,13 +31,14 @@ export function SearchConsoleWidget({ workspaceId, siteUrl, startDate, endDate }
       return response.json();
     },
     enabled: !!workspaceId,
-    onSuccess: (sitesData) => {
-      // Auto-select first site if none selected
-      if (!selectedSite && sitesData && sitesData.length > 0) {
-        setSelectedSite(sitesData[0]);
-      }
-    }
   });
+
+  // Auto-select first site when sites are loaded and none is selected
+  React.useEffect(() => {
+    if (!selectedSite && sites && sites.length > 0) {
+      setSelectedSite(sites[0]);
+    }
+  }, [sites, selectedSite]);
 
   // Disconnect mutation
   const disconnectMutation = useMutation({

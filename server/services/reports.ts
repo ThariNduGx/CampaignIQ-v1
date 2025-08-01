@@ -111,14 +111,8 @@ export async function generateReportData(
     totalImpressions
   };
 
-  // Generate AI insights for the report
-  let aiInsights: any[] = [];
-  try {
-    const insights = await generateAIInsights(summary);
-    aiInsights = Array.isArray(insights) ? insights : [];
-  } catch (error) {
-    console.log('AI insights not available:', error);
-  }
+  // AI insights will be generated on demand, not during report generation
+  const aiInsights: any[] = [];
 
   return {
     summary,

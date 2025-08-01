@@ -1,79 +1,65 @@
 import OpenAI from "openai";
+import type { ReportData } from "./reports";
 
+// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-export interface MetricsSummary {
-  totalSpend: number;
-  totalConversions: number;
-  totalRevenue: number;
-  avgRoas: number;
-  avgCtr: number;
-  totalClicks: number;
-  totalImpressions: number;
-}
-
 export interface AIInsight {
+  id: string;
   title: string;
   content: string;
-  type: 'success' | 'warning' | 'info' | 'alert';
+  type: 'success' | 'warning' | 'info' | 'error';
   priority: 'high' | 'medium' | 'low';
+  createdAt: string;
 }
 
-export async function generateAIInsights(
-  currentMetrics: MetricsSummary,
-  previousMetrics?: MetricsSummary,
-  campaignData?: any[]
-): Promise<AIInsight[]> {
+export async function generateAIInsights(reportData: ReportData): Promise<AIInsight[]> {
   try {
-    // Calculate performance changes if previous metrics are available
-    const changes = previousMetrics ? {
-      spendChange: ((currentMetrics.totalSpend - previousMetrics.totalSpend) / previousMetrics.totalSpend) * 100,
-      roasChange: ((currentMetrics.avgRoas - previousMetrics.avgRoas) / previousMetrics.avgRoas) * 100,
-      ctrChange: ((currentMetrics.avgCtr - previousMetrics.avgCtr) / previousMetrics.avgCtr) * 100,
-      conversionsChange: ((currentMetrics.totalConversions - previousMetrics.totalConversions) / previousMetrics.totalConversions) * 100,
-    } : null;
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OpenAI API key not configured");
+    }
 
-    const prompt = `
-You are a marketing analytics expert. Analyze the following campaign performance data and provide 3-4 actionable insights in plain English.
+    const prompt = `Analyze the following marketing campaign data and provide actionable insights:
 
-Current Performance:
-- Total Ad Spend: $${currentMetrics.totalSpend.toFixed(2)}
-- Total Conversions: ${currentMetrics.totalConversions}
-- Total Revenue: $${currentMetrics.totalRevenue.toFixed(2)}
-- Average ROAS: ${currentMetrics.avgRoas.toFixed(2)}x
-- Average CTR: ${(currentMetrics.avgCtr * 100).toFixed(2)}%
-- Total Clicks: ${currentMetrics.totalClicks}
-- Total Impressions: ${currentMetrics.totalImpressions}
+Campaign Summary:
+- Total Spend: $${reportData.summary.totalSpend}
+- Total Clicks: ${reportData.summary.totalClicks}
+- Total Impressions: ${reportData.summary.totalImpressions}
+- Average CTR: ${reportData.summary.avgCtr}%
+- Total Conversions: ${reportData.summary.totalConversions}
+- Average ROAS: ${reportData.summary.avgRoas}
 
-${changes ? `
-Performance Changes vs Previous Period:
-- Spend Change: ${changes.spendChange.toFixed(1)}%
-- ROAS Change: ${changes.roasChange.toFixed(1)}%
-- CTR Change: ${changes.ctrChange.toFixed(1)}%
-- Conversions Change: ${changes.conversionsChange.toFixed(1)}%
-` : ''}
+Google Analytics Data:
+${JSON.stringify(reportData.platforms.google.analytics, null, 2)}
 
-Provide insights as a JSON array with objects containing:
-- title: Brief insight title
-- content: 2-3 sentence explanation with specific numbers and actionable advice
-- type: "success" (good performance), "warning" (needs attention), "info" (neutral observation), or "alert" (urgent issue)
-- priority: "high", "medium", or "low"
+Meta Advertising Data:
+${JSON.stringify(reportData.platforms.meta, null, 2)}
+
+Please provide 3-5 specific, actionable insights in JSON format with the following structure:
+{
+  "insights": [
+    {
+      "title": "Insight Title",
+      "content": "Detailed insight with specific recommendations",
+      "type": "success|warning|info",
+      "priority": "high|medium|low"
+    }
+  ]
+}
 
 Focus on:
-1. Overall performance trends and what they mean
-2. Anomaly detection (unusual spikes or drops)
-3. ROAS and efficiency insights
-4. Specific recommendations for improvement
-
-Respond only with valid JSON.
-`;
+1. Performance trends and anomalies
+2. Platform comparison insights
+3. Optimization recommendations
+4. Budget allocation suggestions
+5. Audience targeting improvements`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are a marketing analytics expert providing actionable insights based on advertising performance data. Always respond with valid JSON."
+          content: "You are a digital marketing expert who analyzes campaign data and provides actionable insights. Always respond with valid JSON."
         },
         {
           role: "user",
@@ -81,86 +67,77 @@ Respond only with valid JSON.
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.3,
+      max_tokens: 1500,
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{"insights": []}');
-    return result.insights || result || [];
+    
+    return result.insights.map((insight: any, index: number) => ({
+      id: `ai-${Date.now()}-${index}`,
+      title: insight.title,
+      content: insight.content,
+      type: insight.type || 'info',
+      priority: insight.priority || 'medium',
+      createdAt: new Date().toISOString()
+    }));
 
   } catch (error) {
     console.error('Error generating AI insights:', error);
     
-    // Return fallback insights based on the data
-    const insights: AIInsight[] = [];
-    
-    if (currentMetrics.avgRoas > 3) {
-      insights.push({
-        title: "Strong ROAS Performance",
-        content: `Your Return on Ad Spend of ${currentMetrics.avgRoas.toFixed(2)}x is excellent, generating $${currentMetrics.avgRoas.toFixed(2)} for every $1 spent. This indicates efficient campaign targeting and creative performance.`,
-        type: "success",
-        priority: "medium"
-      });
-    } else if (currentMetrics.avgRoas < 2) {
-      insights.push({
-        title: "ROAS Needs Improvement",
-        content: `Your current ROAS of ${currentMetrics.avgRoas.toFixed(2)}x is below optimal levels. Consider reviewing your targeting, ad creative, and landing page conversion rates to improve efficiency.`,
-        type: "warning",
-        priority: "high"
-      });
-    }
-
-    if (currentMetrics.avgCtr > 0.03) {
-      insights.push({
-        title: "High Click-Through Rates",
-        content: `Your CTR of ${(currentMetrics.avgCtr * 100).toFixed(2)}% shows strong ad relevance and appeal. Your creative messaging is resonating well with your target audience.`,
-        type: "success",
-        priority: "low"
-      });
-    }
-
-    if (currentMetrics.totalSpend > 0 && currentMetrics.totalConversions === 0) {
-      insights.push({
-        title: "No Conversions Detected",
-        content: `Despite spending $${currentMetrics.totalSpend.toFixed(2)}, no conversions were recorded. Check your conversion tracking setup and consider optimizing your landing pages.`,
-        type: "alert",
-        priority: "high"
-      });
-    }
-
-    return insights;
+    // Return fallback insights if AI generation fails
+    return [
+      {
+        id: 'fallback-1',
+        title: 'AI Analysis Unavailable',
+        content: 'Unable to generate AI insights at this time. Please ensure your OpenAI API key is configured correctly and try again.',
+        type: 'warning' as const,
+        priority: 'high' as const,
+        createdAt: new Date().toISOString()
+      }
+    ];
   }
 }
 
-export async function detectAnomalies(
-  currentMetrics: MetricsSummary,
-  historicalData: MetricsSummary[]
-): Promise<AIInsight[]> {
-  const anomalies: AIInsight[] = [];
-  
-  if (historicalData.length === 0) return anomalies;
-  
-  const avgSpend = historicalData.reduce((sum, m) => sum + m.totalSpend, 0) / historicalData.length;
-  const avgRoas = historicalData.reduce((sum, m) => sum + m.avgRoas, 0) / historicalData.length;
-  
-  // Detect spending anomalies (>50% increase)
-  if (currentMetrics.totalSpend > avgSpend * 1.5) {
-    anomalies.push({
-      title: "Unusual Spending Spike",
-      content: `Your ad spend increased by ${(((currentMetrics.totalSpend - avgSpend) / avgSpend) * 100).toFixed(0)}% compared to your average. Review campaign settings and bid strategies to ensure this is intentional.`,
-      type: "alert",
-      priority: "high"
+export async function generateCampaignSummary(reportData: ReportData): Promise<string> {
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OpenAI API key not configured");
+    }
+
+    const prompt = `Create a concise executive summary of this marketing campaign performance:
+
+Total Spend: $${reportData.summary.totalSpend}
+Total Clicks: ${reportData.summary.totalClicks}
+Total Impressions: ${reportData.summary.totalImpressions}
+CTR: ${reportData.summary.avgCtr}%
+Conversions: ${reportData.summary.totalConversions}
+ROAS: ${reportData.summary.avgRoas}
+
+Platforms:
+- Google: ${JSON.stringify(reportData.platforms.google, null, 2)}
+- Meta: ${JSON.stringify(reportData.platforms.meta, null, 2)}
+
+Provide a 2-3 paragraph executive summary highlighting key performance metrics, trends, and strategic recommendations.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are a digital marketing expert who creates executive summaries for campaign performance reports."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      max_tokens: 500,
     });
+
+    return response.choices[0].message.content || "Unable to generate campaign summary at this time.";
+
+  } catch (error) {
+    console.error('Error generating campaign summary:', error);
+    return "Campaign summary unavailable. Please check your OpenAI API configuration.";
   }
-  
-  // Detect ROAS drops (>30% decrease)
-  if (currentMetrics.avgRoas < avgRoas * 0.7) {
-    anomalies.push({
-      title: "ROAS Performance Drop",
-      content: `Your ROAS decreased by ${(((avgRoas - currentMetrics.avgRoas) / avgRoas) * 100).toFixed(0)}% from your average. This may indicate campaign fatigue or increased competition.`,
-      type: "warning",
-      priority: "high"
-    });
-  }
-  
-  return anomalies;
 }

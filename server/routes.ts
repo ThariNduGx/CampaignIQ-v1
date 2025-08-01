@@ -313,9 +313,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalImpressions
       };
       
+      // Create report data structure for AI analysis
+      const reportData = {
+        summary: currentMetrics,
+        platforms: {
+          google: { analytics: null, searchConsole: null },
+          meta: null
+        },
+        campaigns: [],
+        aiInsights: [],
+        dateRange: {
+          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          endDate: new Date().toISOString().split('T')[0]
+        }
+      };
+
       // Generate AI insights using OpenAI
       const { generateAIInsights } = await import('./services/openai');
-      const insights = await generateAIInsights(currentMetrics);
+      const insights = await generateAIInsights(reportData);
       
       res.json(insights);
     } catch (error) {

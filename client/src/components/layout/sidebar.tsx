@@ -115,13 +115,19 @@ export default function Sidebar({ workspaces, selectedWorkspace, onWorkspaceChan
             </Button>
           </Link>
           
-          <Button
-            variant="ghost"
-            className="w-full justify-start space-x-3 text-slate-300 hover:bg-surface-light hover:text-white"
-          >
-            <Settings className="w-5 h-5" />
-            <span className="font-medium">Settings</span>
-          </Button>
+          <Link href="/settings">
+            <Button
+              variant="ghost"
+              className={`w-full justify-start space-x-3 ${
+                location === '/settings' 
+                  ? 'bg-primary-600/20 text-primary-300 border border-primary-500/30' 
+                  : 'text-slate-300 hover:bg-surface-light hover:text-white'
+              }`}
+            >
+              <Settings className="w-5 h-5" />
+              <span className="font-medium">Settings</span>
+            </Button>
+          </Link>
         </nav>
 
         {/* Platform Connections Status */}
