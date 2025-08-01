@@ -1,12 +1,17 @@
-export function generateOAuthUrl(platform: string, workspaceId: string): string {
-  const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
+export function generateOAuthUrl(platform: string, workspaceId: string, host?: string): string {
   let redirectUri: string;
   
-  if (domains.length > 0) {
-    redirectUri = `https://${domains[0]}/api/oauth/callback`;
+  // Use the provided host or fallback to environment domains
+  if (host) {
+    redirectUri = `https://${host}/api/oauth/callback`;
   } else {
-    // Fallback for development
-    redirectUri = `http://localhost:5000/api/oauth/callback`;
+    const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
+    if (domains.length > 0) {
+      redirectUri = `https://${domains[0]}/api/oauth/callback`;
+    } else {
+      // Fallback for development
+      redirectUri = `http://localhost:5000/api/oauth/callback`;
+    }
   }
   
   console.log(`Generated ${platform} OAuth URL with redirect URI: ${redirectUri}`);
@@ -54,21 +59,26 @@ export function generateOAuthUrl(platform: string, workspaceId: string): string 
   throw new Error(`Unsupported platform: ${platform}`);
 }
 
-export async function exchangeCodeForTokens(platform: string, code: string): Promise<{
+export async function exchangeCodeForTokens(platform: string, code: string, host?: string): Promise<{
   accessToken: string;
   refreshToken?: string;
   expiresIn: number;
   accountId: string;
   accountName: string;
 }> {
-  const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
   let redirectUri: string;
   
-  if (domains.length > 0) {
-    redirectUri = `https://${domains[0]}/api/oauth/callback`;
+  // Use the provided host or fallback to environment domains
+  if (host) {
+    redirectUri = `https://${host}/api/oauth/callback`;
   } else {
-    // Fallback for development
-    redirectUri = `http://localhost:5000/api/oauth/callback`;
+    const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
+    if (domains.length > 0) {
+      redirectUri = `https://${domains[0]}/api/oauth/callback`;
+    } else {
+      // Fallback for development
+      redirectUri = `http://localhost:5000/api/oauth/callback`;
+    }
   }
   
   console.log(`Exchanging ${platform} code with redirect URI: ${redirectUri}`);

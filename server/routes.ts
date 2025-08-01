@@ -103,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/workspaces/:id', requireAuth, getCurrentUser, async (req: any, res) => {
+  app.get('/api/workspaces/:id', requireAuth, async (req: any, res) => {
     try {
       const workspace = await storage.getWorkspace(req.params.id);
       if (!workspace) {
@@ -117,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Platform connection routes
-  app.get('/api/workspaces/:workspaceId/connections', requireAuth, getCurrentUser, async (req, res) => {
+  app.get('/api/workspaces/:workspaceId/connections', requireAuth, async (req, res) => {
     try {
       const connections = await storage.getWorkspacePlatformConnections(req.params.workspaceId);
       res.json(connections);
@@ -128,7 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // OAuth initiation routes
-  app.post('/api/oauth/:platform/init', requireAuth, getCurrentUser, async (req: any, res) => {
+  app.post('/api/oauth/:platform/init', requireAuth, async (req: any, res) => {
     try {
       const { platform } = req.params;
       const { workspaceId } = req.body;
@@ -137,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid platform" });
       }
 
-      const authUrl = generateOAuthUrl(platform, workspaceId);
+      const authUrl = generateOAuthUrl(platform, workspaceId, req.get('host'));
       res.json({ authUrl });
     } catch (error) {
       console.error("Error initiating OAuth:", error);
@@ -170,7 +170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`OAuth callback received for platform: ${platform}, referrer: ${referrer}`);
       
-      const tokens = await exchangeCodeForTokens(platform, code as string);
+      const tokens = await exchangeCodeForTokens(platform, code as string, req.get('host'));
       
       // Store the connection in database
       const connection = await storage.createPlatformConnection({
