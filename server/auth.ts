@@ -205,7 +205,7 @@ export function setupAuth(app: Express) {
     passport.authenticate("google", { scope: ["profile", "email"] })
   );
 
-  app.get("/api/auth/google/callback",
+  app.get("/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/auth" }),
     (req, res) => {
       res.redirect("/");
