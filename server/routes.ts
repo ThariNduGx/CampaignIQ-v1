@@ -303,6 +303,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get available Google My Business accounts
+  app.get('/api/google/my-business/:workspaceId/accounts', isAuthenticated, async (req, res) => {
+    try {
+      const workspaceId = req.params.workspaceId;
+      const userId = (req.user as any)?.claims?.sub;
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const connection = await storage.getConnection(workspaceId, 'google');
+      if (!connection) {
+        return res.status(404).json({ message: 'Google connection not found' });
+      }
+
+      googleApiService.setCredentials({
+        access_token: connection.accessToken,
+        refresh_token: connection.refreshToken || undefined,
+        scope: 'https://www.googleapis.com/auth/business.manage',
+        token_type: 'Bearer',
+        expiry_date: connection.expiresAt ? new Date(connection.expiresAt).getTime() : undefined,
+      });
+
+      const accounts = await googleApiService.getMyBusinessAccounts();
+      res.json(accounts);
+    } catch (error) {
+      console.error('Error fetching Google My Business accounts:', error);
+      res.status(500).json({ message: 'Failed to fetch My Business accounts' });
+    }
+  });
+
   // Google Analytics data endpoint
   app.get('/api/google/analytics/:workspaceId', isAuthenticated, async (req, res) => {
     try {
