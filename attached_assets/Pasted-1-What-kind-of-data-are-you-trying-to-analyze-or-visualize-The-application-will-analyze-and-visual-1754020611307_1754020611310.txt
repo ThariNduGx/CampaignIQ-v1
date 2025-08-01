@@ -1,0 +1,52 @@
+1. What kind of data are you trying to analyze or visualize?
+The application will analyze and visualize key performance data from two primary sources: Google (specifically Google Ads & Analytics) and Meta (Facebook & Instagram Ads).
+
+The specific metrics we need to see for our campaigns are:
+
+Impressions
+
+Clicks
+
+Ad Spend (or Cost)
+
+Conversions (e.g., purchases, sign-ups)
+
+Conversion Value (Revenue)
+
+Click-Through Rate (CTR)
+
+Cost Per Click (CPC)
+
+Cost Per Acquisition (CPA)
+
+Return On Ad Spend (ROAS)
+
+The main goal is to pull all this data together to see a unified view of performance instead of logging into each platform separately.
+
+2. What specific insights should users get from their connected accounts?
+Users should be able to answer critical business questions quickly and easily:
+
+Holistic Performance: "What is my total ad spend and total revenue across all my platforms for this month?" The app should show combined totals.
+
+Cross-Platform Effectiveness: "Which platform is performing better for my 'Summer Sale' campaign? Is Google or Facebook giving me a lower Cost Per Acquisition (CPA)?" Users need to see side-by-side comparisons.
+
+Performance Over Time: "Is my Return On Ad Spend (ROAS) getting better or worse over the last 90 days?" This requires trend-line charts.
+
+AI-Powered Summaries: This is a key feature. Instead of just showing numbers, the app should use the OpenAI API to provide plain-English insights like: "This week, your overall ROAS increased by 15%, driven by strong performance on Facebook Ads which saw a 30% decrease in CPA."
+
+Anomaly Detection: The AI should also be able to spot problems, for example: "Alert: The cost for your Google Ads campaign 'Brand Search' spiked by 80% yesterday with no increase in clicks."
+
+3. What would be the main user workflow?
+The user journey should be as simple as possible:
+
+Sign Up / Log In: A user creates a secure account with their email and password.
+
+Connect Platforms: The very first thing the user does is navigate to a 'Settings' or 'Connections' page. Here, they will see buttons to "Connect Google" and "Connect Facebook." They will go through a standard, secure OAuth pop-up window to grant the app permission to view their ad data. This is a one-time setup.
+
+View the Dashboard: Once accounts are connected, the main dashboard becomes their central hub. It automatically shows their combined data. They will see summary cards at the top, charts showing trends, and a table with detailed campaign data.
+
+Interact and Analyze: The user can select a date range (e.g., "Last 30 Days") to update all the visuals on the dashboard. They can look at the charts to compare performance across platforms.
+
+Get AI Insights: The user clicks a button like "Generate AI Summary" on the dashboard. The app then displays a simple, text-based summary and any critical alerts about their campaign performance.
+
+In summary, please ensure the application you build includes secure user authentication, OAuth connections for Google and Facebook, data visualization with charts, and the OpenAI integration for insights. I look forward to seeing how you build this using Replit's powerful and compatible technologies.
