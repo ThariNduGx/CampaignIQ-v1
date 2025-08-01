@@ -1,10 +1,11 @@
 export function generateOAuthUrl(platform: string, workspaceId: string, host?: string): string {
   let redirectUri: string;
   
-  // Use the provided host or fallback to environment domains
-  if (host) {
-    redirectUri = `https://${host}/api/oauth/callback`;
+  // Use the Google redirect URI from environment variable if available
+  if (platform === 'google' && process.env.GOOGLE_REDIRECT_URI) {
+    redirectUri = process.env.GOOGLE_REDIRECT_URI;
   } else {
+    // Use REPLIT_DOMAINS environment variable
     const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
     if (domains.length > 0) {
       redirectUri = `https://${domains[0]}/api/oauth/callback`;
@@ -68,10 +69,11 @@ export async function exchangeCodeForTokens(platform: string, code: string, host
 }> {
   let redirectUri: string;
   
-  // Use the provided host or fallback to environment domains
-  if (host) {
-    redirectUri = `https://${host}/api/oauth/callback`;
+  // Use the Google redirect URI from environment variable if available
+  if (platform === 'google' && process.env.GOOGLE_REDIRECT_URI) {
+    redirectUri = process.env.GOOGLE_REDIRECT_URI;
   } else {
+    // Use REPLIT_DOMAINS environment variable
     const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
     if (domains.length > 0) {
       redirectUri = `https://${domains[0]}/api/oauth/callback`;
